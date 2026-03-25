@@ -14,7 +14,7 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-window.onload = () => {
+document.getElementById("startButton").onclick = () => {
     initGame();
     setInterval(spawnObject, 1000);
     gameLoop();
