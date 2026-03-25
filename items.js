@@ -23,7 +23,6 @@ export const GameItems = {
     ]
 };
 
-// Función auxiliar para generar la lista en la pantalla de inicio
 export function populateItemsList() {
     const goodDiv = document.getElementById('goodItemsList');
     const badDiv = document.getElementById('badItemsList');
