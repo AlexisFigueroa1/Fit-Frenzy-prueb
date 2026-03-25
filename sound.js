@@ -1,13 +1,11 @@
 let audioCtx = null;
 let initialized = false;
 
-// Inicializa el contexto de audio (requiere interacción del usuario)
 function initAudio() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
-// Reproduce un tono corto con frecuencia y duración
 function playTone(frequency, duration, volume = 0.3) {
     if (!audioCtx) return;
     const now = audioCtx.currentTime;
@@ -22,7 +20,6 @@ function playTone(frequency, duration, volume = 0.3) {
     osc.stop(now + duration);
 }
 
-// Efectos específicos
 export function playCollectGood() {
     if (!audioCtx) return;
     playTone(880, 0.1, 0.2);
@@ -51,12 +48,10 @@ export function playGameOver() {
     setTimeout(() => playTone(100, 0.5, 0.3), 400);
 }
 
-// Llama a esta función cuando el jugador inicie el juego (por ejemplo, al hacer clic en "COMENZAR")
 export function enableAudio() {
-    if (!initialized && audioCtx === null) {
+    if (!initialized) {
         initAudio();
         initialized = true;
-        // Reanuda el contexto si estaba suspendido
         if (audioCtx && audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
