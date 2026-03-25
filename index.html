@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Fit Frenzy - Arcade Fitness Game</title>
     <style>
         * {
@@ -12,10 +12,8 @@
             font-family: 'Courier New', monospace;
             -webkit-tap-highlight-color: transparent;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
             user-select: none;
-            -webkit-touch-callout: none;
+            touch-action: manipulation;
         }
         
         body {
@@ -27,59 +25,70 @@
             overflow: hidden;
             color: #f0f0f0;
             touch-action: manipulation;
+            position: fixed;
+            width: 100%;
+            height: 100%;
         }
         
         #gameContainer {
             position: relative;
-            text-align: center;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
+            background: #0f0f25;
         }
         
+        /* Canvas ahora ocupa TODO el contenedor sin transformaciones que causen cortes */
         canvas {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #0f0f25;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: block;
-            image-rendering: pixelated;
             image-rendering: crisp-edges;
             touch-action: none;
+            background: #0f0f25;
         }
         
-        /* UI optimizada para móvil */
+        /* UI optimizada para móvil - posicionamiento fijo dentro del contenedor */
         #ui {
             position: absolute;
-            top: 10px;
+            top: 12px;
+            left: 0;
+            right: 0;
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 0 10px;
+            padding: 0 12px;
             pointer-events: none;
-            z-index: 5;
+            z-index: 10;
+            gap: 8px;
         }
         
         #scoreContainer, #centerUI, #healthContainer {
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.85);
             padding: 6px 10px;
-            border-radius: 8px;
+            border-radius: 12px;
             border: 2px solid #3a6ea5;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-width: 75px;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            min-width: 70px;
         }
+        
+        #scoreContainer { flex: 0.8; }
+        #centerUI { flex: 1.2; }
+        #healthContainer { flex: 0.9; }
         
         #scoreLabel, #intensityLabel, #timeLabel, #healthLabel {
-            font-size: 10px;
+            font-size: 9px;
             margin-bottom: 2px;
+            letter-spacing: 1px;
         }
-        
         #scoreLabel { color: #64c864; }
         #intensityLabel { color: #ffd700; }
         #timeLabel { color: #40b4dc; }
@@ -89,26 +98,14 @@
             font-weight: bold;
             color: #ffffff;
         }
+        #score { font-size: 18px; text-shadow: 0 0 5px #64c864; }
+        #intensity { font-size: 15px; color: #ffd700; text-shadow: 0 0 5px #ffd700; }
+        #time { font-size: 13px; }
         
-        #score {
-            font-size: 18px;
-            text-shadow: 0 0 5px #64c864;
-        }
-        
-        #intensity {
-            font-size: 16px;
-            color: #ffd700;
-            text-shadow: 0 0 5px #ffd700;
-        }
-        
-        #time {
-            font-size: 14px;
-        }
-        
-        /* Barra de vida */
+        /* Barra de vida compacta */
         #healthBar {
-            width: 80px;
-            height: 12px;
+            width: 70px;
+            height: 10px;
             background-color: rgba(0, 0, 0, 0.7);
             border-radius: 6px;
             overflow: hidden;
@@ -121,8 +118,7 @@
             width: 100%;
             background: linear-gradient(90deg, #dc4646, #ff6b6b, #64c864);
             border-radius: 5px;
-            transition: width 0.3s ease;
-            position: relative;
+            transition: width 0.2s ease;
         }
         
         #healthText {
@@ -130,14 +126,14 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
             color: white;
-            text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
-            z-index: 1;
+            text-shadow: 0 0 2px black;
+            white-space: nowrap;
         }
         
-        /* Pantallas optimizadas para móvil */
+        /* Pantallas con scroll interno para evitar corte */
         .screen {
             position: absolute;
             top: 0;
@@ -149,39 +145,40 @@
             justify-content: center;
             align-items: center;
             background-color: rgba(10, 10, 26, 0.98);
-            z-index: 10;
+            z-index: 20;
             text-align: center;
-            padding: 15px;
+            padding: 20px 16px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            backdrop-filter: blur(2px);
         }
         
         .screen.hidden {
             display: none;
         }
         
-        /* Botones optimizados para toque */
+        /* Botones grandes para móvil */
         button {
             background: linear-gradient(145deg, #3a6ea5, #2d5685);
             color: white;
             border: none;
-            padding: 14px 25px;
-            margin: 10px;
-            border-radius: 10px;
+            padding: 12px 20px;
+            margin: 8px;
+            border-radius: 40px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.1s, box-shadow 0.1s;
             touch-action: manipulation;
-            min-height: 55px;
-            min-width: 180px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            min-height: 48px;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         button:active {
-            transform: scale(0.95);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transform: scale(0.96);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         }
         
         .pulse {
@@ -189,947 +186,667 @@
         }
         
         @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(58, 110, 165, 0.4); }
-            50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(58, 110, 165, 0.6); }
-            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(58, 110, 165, 0.4); }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
         }
         
-        /* Pantalla de inicio optimizada para móvil */
         .title {
-            font-size: 28px;
-            margin-bottom: 8px;
+            font-size: 32px;
+            margin-bottom: 6px;
             color: #3a6ea5;
-            text-shadow: 0 0 10px #3a6ea5;
-            line-height: 1.2;
+            text-shadow: 0 0 12px #3a6ea5;
         }
         
         .subtitle {
-            font-size: 14px;
-            margin-bottom: 12px;
-            color: #ffffff;
-            line-height: 1.3;
-            padding: 0 8px;
+            font-size: 13px;
+            margin-bottom: 10px;
+            color: #ddd;
+            padding: 0 10px;
         }
         
         .instructions {
-            font-size: 18px;
-            margin: 12px 0;
+            font-size: 16px;
+            margin: 10px 0;
             color: #ffd700;
-            text-shadow: 0 0 5px #ffd700;
         }
         
         .controls {
-            margin: 12px 0;
-            color: #ffffff;
-            font-size: 14px;
+            margin: 8px 0;
+            font-size: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 8px;
         }
         
         .key {
-            display: inline-block;
             background: linear-gradient(145deg, #555, #333);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 6px;
-            border: 2px solid #666;
+            padding: 4px 12px;
+            border-radius: 8px;
             font-size: 12px;
-            min-width: 30px;
-            text-align: center;
-            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
         }
         
         .objects-list {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 12px 0;
             width: 100%;
-            max-height: 50vh;
+            max-height: 40vh;
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+            margin: 10px 0;
             padding: 8px;
-            background-color: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            border: 1px solid rgba(58, 110, 165, 0.3);
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
         }
         
         .object-category {
-            width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         .category-title {
-            font-size: 16px;
-            margin-bottom: 10px;
-            color: #ffd700;
-            padding: 6px;
-            border-radius: 6px;
-            background-color: rgba(0, 0, 0, 0.4);
+            font-size: 14px;
             font-weight: bold;
+            margin-bottom: 6px;
+            padding: 4px;
+            border-radius: 20px;
         }
+        
+        .good-category .category-title { color: #64c864; background: rgba(100,200,100,0.2); }
+        .bad-category .category-title { color: #dc4646; background: rgba(220,70,70,0.2); }
         
         .object-item {
             display: flex;
             align-items: center;
-            margin-bottom: 6px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            background-color: rgba(0, 0, 0, 0.2);
-            font-size: 14px;
-            line-height: 1.2;
-            transition: transform 0.2s;
+            gap: 8px;
+            padding: 5px 8px;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         
-        .object-item:active {
-            transform: scale(0.98);
-        }
-        
-        .object-bullet {
-            font-size: 20px;
-            margin-right: 10px;
-            min-width: 20px;
-            text-shadow: 0 0 3px currentColor;
-        }
-        
-        .object-name {
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .good-category .category-title {
-            color: #64c864;
-            background-color: rgba(100, 200, 100, 0.15);
-            border: 1px solid rgba(100, 200, 100, 0.3);
-        }
-        
-        .bad-category .category-title {
-            color: #dc4646;
-            background-color: rgba(220, 70, 70, 0.15);
-            border: 1px solid rgba(220, 70, 70, 0.3);
-        }
+        .object-bullet { font-size: 18px; width: 24px; text-align: center; }
+        .object-name { font-size: 12px; }
         
         .tip {
-            font-size: 14px;
-            margin: 15px 0;
+            font-size: 12px;
+            margin: 10px 0;
             color: #40b4dc;
-            line-height: 1.3;
-            padding: 0 12px;
-            text-align: center;
+            padding: 0 8px;
         }
         
-        /* Controles táctiles optimizados para móvil */
+        /* Controles táctiles */
         #touchControls {
             position: absolute;
-            bottom: 30px;
+            bottom: 20px;
             left: 0;
-            width: 100%;
+            right: 0;
             display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 0 20px;
-            z-index: 3;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 15;
             pointer-events: none;
         }
         
         .touch-button {
             width: 70px;
             height: 70px;
-            background: linear-gradient(145deg, rgba(58, 110, 165, 0.9), rgba(45, 86, 133, 0.9));
+            background: rgba(58, 110, 165, 0.9);
             border-radius: 50%;
             display: flex;
-            justify-content: center;
             align-items: center;
-            font-size: 35px;
+            justify-content: center;
+            font-size: 38px;
+            font-weight: bold;
             color: white;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            user-select: none;
-            touch-action: manipulation;
-            opacity: 0.9;
+            border: 3px solid rgba(255,255,255,0.5);
             pointer-events: auto;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-            transition: all 0.1s;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            transition: 0.05s linear;
         }
         
         .touch-button:active {
-            transform: scale(0.9);
-            background: linear-gradient(145deg, rgba(45, 86, 133, 1), rgba(58, 110, 165, 1));
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            transform: scale(0.88);
+            background: #2d5685;
         }
         
-        /* Indicadores */
         .boost-indicator {
             position: absolute;
-            top: 100px;
+            top: 28%;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(145deg, rgba(255, 215, 0, 0.9), rgba(255, 200, 0, 0.8));
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 2px solid #ffd700;
-            font-size: 14px;
-            font-weight: bold;
+            background: #ffd700;
             color: #000;
-            display: none;
-            z-index: 6;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 14px;
             white-space: nowrap;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-            animation: float 2s infinite;
+            z-index: 12;
+            display: none;
+            box-shadow: 0 0 20px gold;
+            animation: fadeUp 0.8s;
         }
         
-        @keyframes float {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-5px); }
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
         }
         
-        /* Efecto de toque */
-        .touch-feedback {
-            position: absolute;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
-            pointer-events: none;
-            z-index: 100;
-            opacity: 0;
-            animation: touchEffect 0.5s ease-out;
-        }
-        
-        @keyframes touchEffect {
-            0% { transform: scale(0.5); opacity: 0.8; }
-            100% { transform: scale(1.5); opacity: 0; }
-        }
-        
-        /* Pantalla de Game Over optimizada */
-        #gameOverScreen h1 {
-            font-size: 32px;
-            margin-bottom: 15px;
-            color: #dc4646;
-            text-shadow: 0 0 10px rgba(220, 70, 70, 0.5);
-        }
-        
-        #gameOverScreen p {
-            font-size: 16px;
-            margin: 8px 0;
-        }
-        
-        /* Efecto de daño */
         .damage-effect {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(220, 70, 70, 0.3);
+            background: rgba(220, 70, 70, 0.4);
             pointer-events: none;
-            z-index: 4;
+            z-index: 8;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.2s;
         }
         
-        /* Récord */
         .record-container {
-            background: linear-gradient(145deg, rgba(255, 215, 0, 0.2), rgba(255, 200, 0, 0.15));
-            border: 2px solid rgba(255, 215, 0, 0.5);
-            border-radius: 10px;
-            padding: 12px 20px;
-            margin: 15px 0;
-            min-width: 250px;
+            background: rgba(0,0,0,0.6);
+            border: 2px solid #ffd700;
+            border-radius: 16px;
+            padding: 8px 16px;
+            margin: 12px 0;
             text-align: center;
         }
         
-        .record-title {
-            font-size: 16px;
-            color: #ffd700;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        
         .record-score {
-            font-size: 24px;
-            color: #ffffff;
+            font-size: 28px;
             font-weight: bold;
-            text-shadow: 0 0 8px #ffd700;
+            color: #ffd700;
         }
         
         .new-record {
-            animation: newRecordPulse 1.5s infinite;
-            background: linear-gradient(145deg, rgba(255, 215, 0, 0.4), rgba(255, 200, 0, 0.3));
-            border-color: #ffd700;
+            animation: pulseGold 1s infinite;
+            border-color: #ffaa00;
         }
         
-        @keyframes newRecordPulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-            50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+        @keyframes pulseGold {
+            0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.4); }
+            100% { box-shadow: 0 0 0 12px rgba(255,215,0,0); }
         }
         
-        /* Indicador de intensidad */
         .intensity-bar {
             width: 100%;
-            height: 6px;
-            background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 3px;
-            margin-top: 5px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 4px;
             overflow: hidden;
         }
         
         .intensity-fill {
             height: 100%;
+            background: linear-gradient(90deg, #64c864, #ffd700);
             width: 0%;
-            background: linear-gradient(90deg, #64c864, #ffd700, #dc4646);
-            border-radius: 3px;
-            transition: width 0.5s ease;
+            transition: width 0.3s;
         }
         
-        /* Ajustes para pantallas pequeñas */
+        @media (max-width: 500px) {
+            .touch-button { width: 60px; height: 60px; font-size: 32px; }
+            #score, #intensity, #time { font-size: 14px; }
+            #scoreContainer, #centerUI, #healthContainer { padding: 4px 6px; min-width: 60px; }
+            .title { font-size: 26px; }
+            button { min-width: 140px; padding: 10px 16px; font-size: 14px; }
+            .record-score { font-size: 24px; }
+        }
+        
         @media (max-height: 700px) {
-            .title { font-size: 24px; }
-            .subtitle { font-size: 12px; margin-bottom: 8px; }
-            .instructions { font-size: 16px; margin: 8px 0; }
-            .controls { margin: 8px 0; font-size: 12px; }
-            .key { padding: 3px 8px; font-size: 11px; min-width: 25px; }
-            .object-item { padding: 5px 8px; font-size: 12px; margin-bottom: 5px; }
-            .object-bullet { font-size: 18px; margin-right: 8px; }
-            .tip { font-size: 12px; margin: 12px 0; }
-            button { padding: 12px 20px; font-size: 14px; min-height: 45px; min-width: 160px; }
-            .touch-button { width: 60px; height: 60px; font-size: 30px; }
-            #touchControls { bottom: 20px; }
-        }
-        
-        @media (max-height: 600px) {
-            .objects-list { max-height: 40vh; }
-            .title { font-size: 22px; }
-            button { padding: 10px 18px; font-size: 13px; min-height: 40px; min-width: 140px; }
-            .touch-button { width: 55px; height: 55px; font-size: 25px; }
-            #touchControls { bottom: 15px; }
-        }
-        
-        @media (max-width: 400px) {
-            #ui { padding: 0 5px; }
-            #scoreContainer, #centerUI, #healthContainer { 
-                padding: 5px 8px; 
-                min-width: 70px;
-            }
-            #score { font-size: 16px; }
-            #intensity { font-size: 14px; }
-            #time { font-size: 12px; }
-            .title { font-size: 22px; }
-            button { min-width: 140px; padding: 10px 16px; }
-            .touch-button { width: 60px; height: 60px; }
-            #healthBar { width: 70px; }
-        }
-        
-        /* Animación de entrada */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .screen > * {
-            animation: fadeIn 0.5s ease-out;
+            .objects-list { max-height: 35vh; }
+            .touch-button { width: 55px; height: 55px; font-size: 28px; }
+            #touchControls { bottom: 10px; }
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-        
-        <!-- Efecto de daño (rojo parpadeante) -->
-        <div id="damageEffect" class="damage-effect"></div>
-        
-        <!-- UI del juego durante la partida -->
-        <div id="ui">
-            <!-- Puntos en la parte superior izquierda -->
-            <div id="scoreContainer">
-                <div id="scoreLabel">PUNTOS</div>
-                <div id="score">0</div>
-            </div>
-            
-            <!-- Intensidad y tiempo en el centro superior -->
-            <div id="centerUI">
-                <div id="intensityContainer">
-                    <div id="intensityLabel">INTENSIDAD</div>
-                    <div id="intensity">1.0x</div>
-                    <div class="intensity-bar">
-                        <div id="intensityFill" class="intensity-fill" style="width: 0%;"></div>
-                    </div>
-                </div>
-                <div id="timeContainer">
-                    <div id="timeLabel">TIEMPO</div>
-                    <div id="time">00:00</div>
-                </div>
-            </div>
-            
-            <!-- Barra de vida en la parte superior derecha -->
-            <div id="healthContainer">
-                <div id="healthLabel">SALUD</div>
-                <div id="healthBar">
-                    <div id="healthFill" style="width: 100%;"></div>
-                    <div id="healthText">100%</div>
-                </div>
-            </div>
+<div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="damageEffect" class="damage-effect"></div>
+    
+    <div id="ui">
+        <div id="scoreContainer"><div id="scoreLabel">PUNTOS</div><div id="score">0</div></div>
+        <div id="centerUI">
+            <div><div id="intensityLabel">INTENSIDAD</div><div id="intensity">1.0x</div><div class="intensity-bar"><div id="intensityFill" class="intensity-fill"></div></div></div>
+            <div><div id="timeLabel">TIEMPO</div><div id="time">00:00</div></div>
         </div>
-        
-        <!-- Controles táctiles optimizados para móvil -->
-        <div id="touchControls">
-            <div class="touch-button" id="leftButton">←</div>
-            <div class="touch-button" id="rightButton">→</div>
-        </div>
-        
-        <!-- Indicador de boost de velocidad -->
-        <div id="boostIndicator" class="boost-indicator">
-            ¡BOOST DE VELOCIDAD!
-        </div>
-        
-        <!-- Pantalla de inicio optimizada para móvil -->
-        <div id="startScreen" class="screen">
-            <h1 class="title">FIT FRENZY</h1>
-            <p class="subtitle">¡Atrapa los alimentos saludables y evita la comida chatarra!</p>
-            
-            <!-- Récord actual -->
-            <div id="startRecordContainer" class="record-container">
-                <div class="record-title">RÉCORD ACTUAL</div>
-                <div id="startRecordScore" class="record-score">0</div>
-                <div id="startRecordDetails" style="font-size: 12px; color: #aaa; margin-top: 5px;">Tiempo: 00:00</div>
-            </div>
-            
-            <div class="instructions">INSTRUCCIONES</div>
-            
-            <div class="controls">
-                <span class="key">←</span> <span class="key">→</span> para mover
-                <span style="margin: 0 5px;">|</span>
-                <span class="key">P</span> para pausar
-            </div>
-            
-            <div class="objects-list">
-                <!-- Objetos buenos -->
-                <div class="object-category good-category">
-                    <div class="category-title">🥗 ALIMENTOS SALUDABLES (+puntos)</div>
-                    <div id="goodItemsList"></div>
-                </div>
-                
-                <!-- Objetos malos -->
-                <div class="object-category bad-category">
-                    <div class="category-title">🍔 COMIDA CHATARRA (-salud)</div>
-                    <div id="badItemsList"></div>
-                </div>
-            </div>
-            
-            <p class="tip">¡La dificultad aumenta progresivamente con tus puntos! Cada 100 puntos, el juego se vuelve más rápido y caen más objetos.</p>
-            
-            <button id="startButton" class="pulse">COMENZAR JUEGO</button>
-            
-            <div style="margin-top: 20px;">
-                <button id="resetRecordButton" style="background: linear-gradient(145deg, #dc4646, #c23e3e); min-height: 40px; min-width: 160px; font-size: 14px; padding: 10px 15px;">
-                    REINICIAR RÉCORD
-                </button>
-            </div>
-        </div>
-        
-        <!-- Pantalla de pausa optimizada para móvil -->
-        <div id="pauseScreen" class="screen hidden">
-            <h1>JUEGO PAUSADO</h1>
-            <br>
-            <button id="resumeButton">CONTINUAR</button>
-            <button id="restartButton">REINICIAR</button>
-            <button id="menuButton">MENÚ</button>
-        </div>
-        
-        <!-- Pantalla de Game Over optimizada para móvil -->
-        <div id="gameOverScreen" class="screen hidden">
-            <h1>GAME OVER</h1>
-            <br>
-            <p>Puntuación final: <span id="finalScore">0</span></p>
-            <p>Intensidad máxima: <span id="finalIntensity">1.0x</span></p>
-            <p>Tiempo jugado: <span id="finalTime">00:00</span></p>
-            
-            <!-- Récord -->
-            <div id="recordContainer" class="record-container">
-                <div class="record-title">TU RÉCORD</div>
-                <div id="recordScore" class="record-score">0</div>
-                <div id="recordDetails" style="font-size: 12px; color: #aaa; margin-top: 5px;"></div>
-            </div>
-            
-            <!-- Nuevo récord mensaje -->
-            <div id="newRecordMessage" class="record-container new-record" style="display: none; margin-top: 10px;">
-                <div style="font-size: 16px; color: #ffd700; font-weight: bold;">🎉 ¡NUEVO RÉCORD! 🎉</div>
-                <div style="font-size: 14px; margin-top: 5px;">¡Felicidades! Has superado tu mejor puntuación</div>
-            </div>
-            
-            <br>
-            <button id="playAgainButton">JUGAR DE NUEVO</button>
-            <button id="menuButton2">MENÚ PRINCIPAL</button>
-        </div>
+        <div id="healthContainer"><div id="healthLabel">SALUD</div><div id="healthBar"><div id="healthFill"></div><div id="healthText">100%</div></div></div>
     </div>
+    
+    <div id="touchControls">
+        <div class="touch-button" id="leftButton">←</div>
+        <div class="touch-button" id="rightButton">→</div>
+    </div>
+    <div id="boostIndicator" class="boost-indicator">¡BOOST DE VELOCIDAD!</div>
+    
+    <!-- Pantalla inicio -->
+    <div id="startScreen" class="screen">
+        <h1 class="title">FIT FRENZY</h1>
+        <p class="subtitle">¡Atrapa los alimentos saludables y evita la comida chatarra!</p>
+        <div id="startRecordContainer" class="record-container">
+            <div class="record-title">RÉCORD ACTUAL</div>
+            <div id="startRecordScore" class="record-score">0</div>
+            <div id="startRecordDetails" style="font-size: 11px;">Intensidad: 1.0x | Tiempo: 00:00</div>
+        </div>
+        <div class="instructions">INSTRUCCIONES</div>
+        <div class="controls"><span class="key">← →</span> mover &nbsp;|&nbsp; <span class="key">P</span> pausar</div>
+        <div class="objects-list" id="objectsListContainer">
+            <div class="object-category good-category"><div class="category-title">🥗 ALIMENTOS SALUDABLES (+puntos)</div><div id="goodItemsList"></div></div>
+            <div class="object-category bad-category"><div class="category-title">🍔 COMIDA CHATARRA (-salud)</div><div id="badItemsList"></div></div>
+        </div>
+        <p class="tip">¡Dificultad dinámica! Cada 100 puntos aumenta velocidad y cantidad.</p>
+        <button id="startButton" class="pulse">COMENZAR JUEGO</button>
+        <button id="resetRecordButton" style="background: #5a2e2e; min-width: 140px;">REINICIAR RÉCORD</button>
+    </div>
+    
+    <div id="pauseScreen" class="screen hidden"><h1>⏸ PAUSA</h1><button id="resumeButton">CONTINUAR</button><button id="restartButton">REINICIAR</button><button id="menuButton">MENÚ</button></div>
+    
+    <div id="gameOverScreen" class="screen hidden">
+        <h1>💀 GAME OVER</h1>
+        <p>Puntuación: <span id="finalScore">0</span></p>
+        <p>Intensidad: <span id="finalIntensity">1.0x</span></p>
+        <p>Tiempo: <span id="finalTime">00:00</span></p>
+        <div id="recordContainer" class="record-container"><div class="record-title">🏆 MEJOR PUNTUACIÓN</div><div id="recordScore" class="record-score">0</div><div id="recordDetails"></div></div>
+        <div id="newRecordMessage" class="record-container new-record" style="display:none;"><div>🎉 ¡NUEVO RÉCORD! 🎉</div></div>
+        <button id="playAgainButton">JUGAR DE NUEVO</button>
+        <button id="menuButton2">MENÚ PRINCIPAL</button>
+    </div>
+</div>
 
-    <script>
-        // ======================= CONFIGURACIÓN ACTUALIZADA CON LAS NUEVAS COMIDAS =======================
-        const GameConfig = {
-            // Tamaño dinámico basado en la pantalla del dispositivo
-            get baseWidth() {
-                return Math.min(window.innerWidth, window.innerWidth);
-            },
-            get baseHeight() {
-                return Math.min(window.innerHeight, window.innerHeight);
-            },
-            fps: 60,
-            playerSpeed: 10,
-            initialSpawnRate: 100,
-            minSpawnRate: 40,
-            
-            // 🟢 ALIMENTOS SALUDABLES (NUEVA LISTA: Creatina, Proteína, Barra energética, Lechuga, Ensalada, Manzana, Agua, Brócoli, Pollo)
-            goodItems: [
-                {id: 'creatina', name: 'Creatina', color: '#d878d8', value: 25, shape: 'diamond', size: 28},
-                {id: 'proteina', name: 'Proteína', color: '#40b4dc', value: 20, shape: 'circle', size: 27},
-                {id: 'barra_energetica', name: 'Barra energética', color: '#ffa500', value: 15, shape: 'square', size: 26},
-                {id: 'lechuga', name: 'Lechuga', color: '#6b8e23', value: 5, shape: 'circle', size: 24},
-                {id: 'ensalada', name: 'Ensalada', color: '#9acd32', value: 12, shape: 'square', size: 26},
-                {id: 'manzana', name: 'Manzana', color: '#ff4d4d', value: 10, shape: 'circle', size: 25},
-                {id: 'agua', name: 'Agua', color: '#1e90ff', value: 3, shape: 'circle', size: 22},
-                {id: 'brocoli', name: 'Brócoli', color: '#2e8b57', value: 12, shape: 'triangle', size: 26},
-                {id: 'pollo', name: 'Pollo', color: '#f4a460', value: 18, shape: 'square', size: 28}
-            ],
-            
-            // 🔴 COMIDA CHATARRA (NUEVA LISTA: Soda, Tacos, Pizza, Hot dog, Dona, Helado, Papas fritas, Galletas, Pastel)
-            badItems: [
-                {id: 'soda', name: 'Soda', color: '#8b4513', value: -12, shape: 'circle', size: 26},
-                {id: 'tacos', name: 'Tacos', color: '#cd853f', value: -18, shape: 'square', size: 28},
-                {id: 'pizza', name: 'Pizza', color: '#dc4646', value: -22, shape: 'triangle', size: 30},
-                {id: 'hotdog', name: 'Hot dog', color: '#e9967a', value: -18, shape: 'square', size: 28},
-                {id: 'dona', name: 'Dona', color: '#ff69b4', value: -15, shape: 'circle', size: 26},
-                {id: 'helado', name: 'Helado', color: '#ffb6c1', value: -16, shape: 'triangle', size: 27},
-                {id: 'papas', name: 'Papas fritas', color: '#daa520', value: -12, shape: 'square', size: 25},
-                {id: 'galletas', name: 'Galletas', color: '#bc8f8f', value: -10, shape: 'circle', size: 24},
-                {id: 'pastel', name: 'Pastel', color: '#f08080', value: -20, shape: 'diamond', size: 29}
-            ]
-        };
-
-        // ======================= ESTADOS DEL JUEGO =======================
-        const GameState = {
-            START: 'start',
-            PLAYING: 'playing',
-            PAUSED: 'paused',
-            GAME_OVER: 'game_over'
-        };
-
-        // ======================= VARIABLES GLOBALES =======================
-        let gameState = GameState.START;
-        let player;
-        let fallingObjects = [];
-        let spawnTimer = 0;
-        let spawnRate = GameConfig.initialSpawnRate;
-        let gameTime = 0;
-        let lastCollisionEffect = 0;
-        let keys = {};
-        let canvas, ctx;
-        let canvasScale = 1;
-        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        let touchStartX = 0;
-        let isTouching = false;
-        let highScore = {
-            score: 0,
-            intensity: 1.0,
-            time: 0,
-            date: null
-        };
-        let objectsPerSpawn = 1;
-        let gameIntensity = 1.0;
-        let lastIntensityUpdate = 0;
-
-        // ======================= LOCALSTORAGE FUNCTIONS =======================
-        function loadHighScore() {
-            try {
-                const savedHighScore = localStorage.getItem('fitFrenzyHighScore');
-                if (savedHighScore) {
-                    highScore = JSON.parse(savedHighScore);
-                }
-            } catch (error) {
-                console.error('Error loading high score:', error);
-                highScore = { score: 0, intensity: 1.0, time: 0, date: null };
-            }
-            updateHighScoreDisplay();
+<script>
+    // ----- CONFIGURACIÓN DINÁMICA (se recalcula en cada resize)
+    const GameItems = {
+        good: [
+            {id:'creatina',name:'Creatina',color:'#d878d8',value:25,shape:'diamond'},
+            {id:'proteina',name:'Proteína',color:'#40b4dc',value:20,shape:'circle'},
+            {id:'barra',name:'Barra energética',color:'#ffa500',value:15,shape:'square'},
+            {id:'lechuga',name:'Lechuga',color:'#6b8e23',value:5,shape:'circle'},
+            {id:'ensalada',name:'Ensalada',color:'#9acd32',value:12,shape:'square'},
+            {id:'manzana',name:'Manzana',color:'#ff4d4d',value:10,shape:'circle'},
+            {id:'agua',name:'Agua',color:'#1e90ff',value:3,shape:'circle'},
+            {id:'brocoli',name:'Brócoli',color:'#2e8b57',value:12,shape:'triangle'},
+            {id:'pollo',name:'Pollo',color:'#f4a460',value:18,shape:'square'}
+        ],
+        bad: [
+            {id:'soda',name:'Soda',color:'#8b4513',value:-12,shape:'circle'},
+            {id:'tacos',name:'Tacos',color:'#cd853f',value:-18,shape:'square'},
+            {id:'pizza',name:'Pizza',color:'#dc4646',value:-22,shape:'triangle'},
+            {id:'hotdog',name:'Hot dog',color:'#e9967a',value:-18,shape:'square'},
+            {id:'dona',name:'Dona',color:'#ff69b4',value:-15,shape:'circle'},
+            {id:'helado',name:'Helado',color:'#ffb6c1',value:-16,shape:'triangle'},
+            {id:'papas',name:'Papas fritas',color:'#daa520',value:-12,shape:'square'},
+            {id:'galletas',name:'Galletas',color:'#bc8f8f',value:-10,shape:'circle'},
+            {id:'pastel',name:'Pastel',color:'#f08080',value:-20,shape:'diamond'}
+        ]
+    };
+    
+    let canvas, ctx;
+    let canvasWidth = 0, canvasHeight = 0;
+    let gameState = 'START'; // START, PLAYING, PAUSED, GAME_OVER
+    let player = null;
+    let fallingObjects = [];
+    let spawnTimer = 0, spawnRate = 80;
+    let gameTime = 0;
+    let objectsPerSpawn = 1;
+    let gameIntensity = 1.0;
+    let lastIntensityUpdate = 0;
+    let keys = { ArrowLeft: false, ArrowRight: false };
+    let highScore = { score: 0, intensity: 1.0, time: 0, date: null };
+    
+    // UI Elements
+    const ui = {
+        score: document.getElementById('score'),
+        intensity: document.getElementById('intensity'),
+        time: document.getElementById('time'),
+        healthFill: document.getElementById('healthFill'),
+        healthText: document.getElementById('healthText'),
+        boostIndicator: document.getElementById('boostIndicator'),
+        damageEffect: document.getElementById('damageEffect'),
+        startScreen: document.getElementById('startScreen'),
+        pauseScreen: document.getElementById('pauseScreen'),
+        gameOverScreen: document.getElementById('gameOverScreen'),
+        finalScore: document.getElementById('finalScore'),
+        finalIntensity: document.getElementById('finalIntensity'),
+        finalTime: document.getElementById('finalTime'),
+        recordScore: document.getElementById('recordScore'),
+        recordDetails: document.getElementById('recordDetails'),
+        newRecordMessage: document.getElementById('newRecordMessage'),
+        intensityFill: document.getElementById('intensityFill')
+    };
+    
+    // Helper escala dinámica según tamaño real del canvas
+    function getScale() {
+        return Math.min(1, canvasWidth / 420); // base referencia 420px
+    }
+    
+    class Player {
+        constructor() {
+            const scale = getScale();
+            this.width = Math.max(70, Math.min(110, canvasWidth * 0.18));
+            this.height = Math.max(35, canvasHeight * 0.07);
+            this.x = canvasWidth/2 - this.width/2;
+            this.y = canvasHeight - this.height - 20;
+            this.speed = Math.max(7, canvasWidth * 0.025);
+            this.color = '#4682b4';
+            this.score = 0;
+            this.health = 100;
+            this.maxHealth = 100;
+            this.speedBoost = 0;
+            this.boostTime = 0;
+            this.armOffset = 0;
         }
-
-        function saveHighScore() {
-            try {
-                localStorage.setItem('fitFrenzyHighScore', JSON.stringify(highScore));
-            } catch (error) {
-                console.error('Error saving high score:', error);
-            }
+        update(t) {
+            this.armOffset = Math.sin(t * 0.008) * 6;
+            if (this.boostTime > 0) { this.boostTime--; if(this.boostTime === 0) this.speedBoost = 0; }
         }
-
-        function updateHighScoreDisplay() {
-            const startRecordScore = document.getElementById('startRecordScore');
-            const startRecordDetails = document.getElementById('startRecordDetails');
-            if (startRecordScore) startRecordScore.textContent = highScore.score;
-            if (startRecordDetails) {
-                const minutes = Math.floor(highScore.time / 3600);
-                const seconds = Math.floor((highScore.time % 3600) / 60);
-                const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                let detailsText = `Intensidad: ${highScore.intensity.toFixed(1)}x | Tiempo: ${timeFormatted}`;
-                if (highScore.date) {
-                    const date = new Date(highScore.date);
-                    detailsText += ` | Fecha: ${date.toLocaleDateString()}`;
-                }
-                startRecordDetails.textContent = detailsText;
-            }
-        }
-
-        function checkAndUpdateHighScore(finalScore, finalIntensity, finalTime) {
-            let isNewRecord = false;
-            if (finalScore > highScore.score) {
-                isNewRecord = true;
-                highScore = {
-                    score: finalScore,
-                    intensity: finalIntensity,
-                    time: finalTime,
-                    date: new Date().toISOString()
-                };
-                saveHighScore();
-                updateHighScoreDisplay();
-            }
-            return isNewRecord;
-        }
-
-        function resetHighScore() {
-            if (confirm('¿Estás seguro de que quieres reiniciar tu récord? Esta acción no se puede deshacer.')) {
-                highScore = { score: 0, intensity: 1.0, time: 0, date: null };
-                saveHighScore();
-                updateHighScoreDisplay();
-                alert('Récord reiniciado correctamente.');
-            }
-        }
-
-        // ======================= FUNCIONES DE DIFICULTAD =======================
-        function updateGameIntensity() {
-            const intensityLevel = 1 + Math.floor(player.score / 100);
-            const targetIntensity = 1.0 + (intensityLevel * 0.1);
-            if (targetIntensity > gameIntensity) {
-                gameIntensity += 0.001;
-                gameIntensity = Math.min(gameIntensity, targetIntensity);
-            }
-            updateIntensityUI();
-            spawnRate = Math.max(GameConfig.minSpawnRate, GameConfig.initialSpawnRate / gameIntensity);
-            objectsPerSpawn = Math.min(1 + Math.floor(gameIntensity), 5);
-            if (player.score >= lastIntensityUpdate + 100) {
-                lastIntensityUpdate = player.score - (player.score % 100);
-                showIntensityIncreaseEffect();
-            }
-        }
-
-        function updateIntensityUI() {
-            const intensityElement = document.getElementById('intensity');
-            const intensityFill = document.getElementById('intensityFill');
-            if (intensityElement) intensityElement.textContent = `${gameIntensity.toFixed(1)}x`;
-            if (intensityFill) {
-                const intensityPercent = Math.min((gameIntensity - 1) / 4 * 100, 100);
-                intensityFill.style.width = `${intensityPercent}%`;
-            }
-        }
-
-        function showIntensityIncreaseEffect() { /* efecto visual */ }
-
-        // ======================= CLASE DEL JUGADOR =======================
-        class Player {
-            constructor() {
-                this.width = 80;
-                this.height = 40;
-                this.x = GameConfig.baseWidth / 2 - this.width / 2;
-                this.y = GameConfig.baseHeight - 100;
-                this.speed = GameConfig.playerSpeed;
-                this.color = '#4682b4';
-                this.score = 0;
-                this.health = 100;
-                this.maxHealth = 100;
-                this.speedBoost = 0;
-                this.boostTime = 0;
-                this.armOffset = 0;
-                this.glowEffect = 0;
-            }
-            update(gameTime) {
-                this.armOffset = Math.sin(gameTime * 0.1) * 8;
-                if (this.speedBoost > 0) this.glowEffect = (Math.sin(gameTime * 0.2) + 1) * 0.5;
-                else this.glowEffect = 0;
-                if (this.boostTime > 0) { this.boostTime--; if (this.boostTime === 0) this.speedBoost = 0; }
-            }
-            draw(ctx) {
-                if (this.glowEffect > 0) { ctx.shadowColor = '#ffff64'; ctx.shadowBlur = 15 * this.glowEffect; }
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+        draw(ctx) {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.beginPath();
+            ctx.arc(this.x + this.width/2, this.y - 12, 16, 0, Math.PI*2);
+            ctx.fill();
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(this.x+8, this.y+12);
+            ctx.lineTo(this.x-15, this.y+12+this.armOffset);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(this.x+this.width-8, this.y+12);
+            ctx.lineTo(this.x+this.width+15, this.y+12-this.armOffset);
+            ctx.stroke();
+            if (this.speedBoost > 0) {
+                ctx.fillStyle = '#ffff99';
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y - 15, 18, 0, Math.PI * 2);
+                ctx.arc(this.x+12, this.y+8, 8, 0, Math.PI*2);
                 ctx.fill();
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 8;
-                ctx.beginPath();
-                ctx.moveTo(this.x + 8, this.y + 15);
-                ctx.lineTo(this.x - 20, this.y + 15 + this.armOffset);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(this.x + this.width - 8, this.y + 15);
-                ctx.lineTo(this.x + this.width + 20, this.y + 15 - this.armOffset);
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-                if (this.speedBoost > 0) {
-                    ctx.fillStyle = '#ffff64';
-                    ctx.beginPath();
-                    ctx.arc(this.x + 15, this.y + 10, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-            move(direction) {
-                if (direction === 'left') this.x -= this.speed + this.speedBoost;
-                else if (direction === 'right') this.x += this.speed + this.speedBoost;
-                if (this.x < 0) this.x = 0;
-                if (this.x > GameConfig.baseWidth - this.width) this.x = GameConfig.baseWidth - this.width;
-            }
-            applySpeedBoost() { this.speedBoost = 5; this.boostTime = 180; }
-            takeDamage(amount) { this.health -= amount; if (this.health < 0) this.health = 0; showDamageEffect(); }
-            getBounds() { return { x: this.x - 8, y: this.y - 8, width: this.width + 16, height: this.height + 16 }; }
-            reset() {
-                this.x = GameConfig.baseWidth / 2 - this.width / 2;
-                this.y = GameConfig.baseHeight - 100;
-                this.score = 0;
-                this.health = this.maxHealth;
-                this.speedBoost = 0;
-                this.boostTime = 0;
             }
         }
-
-        // ======================= CLASE OBJETOS CAÍDA =======================
-        class FallingObject {
-            constructor(type, intensity = 1.0) {
-                this.type = type;
-                this.intensity = intensity;
-                const itemList = this.type === 'good' ? GameConfig.goodItems : GameConfig.badItems;
-                const item = itemList[Math.floor(Math.random() * itemList.length)];
-                this.id = item.id;
-                this.name = item.name;
-                this.color = item.color;
-                this.value = item.value;
-                this.shape = item.shape;
-                this.baseSize = item.size;
-                this.size = this.baseSize + Math.random() * 10;
-                this.x = Math.random() * (GameConfig.baseWidth - this.size * 2) + this.size;
-                this.y = -this.size;
-                this.speed = (Math.random() * 2 + 1.5) * intensity;
-                this.rotation = 0;
-                this.rotationSpeed = (Math.random() - 0.5) * 0.15 * intensity;
-                this.wobble = Math.random() * Math.PI * 2;
-                this.wobbleSpeed = Math.random() * 0.05 + 0.02;
-                this.wobbleAmount = Math.random() * 3 + 1;
+        move(dir) {
+            let moveSpeed = this.speed + this.speedBoost;
+            if(dir === 'left') this.x -= moveSpeed;
+            else if(dir === 'right') this.x += moveSpeed;
+            if(this.x < 0) this.x = 0;
+            if(this.x > canvasWidth - this.width) this.x = canvasWidth - this.width;
+        }
+        applySpeedBoost() { this.speedBoost = 6; this.boostTime = 150; showBoostMessage(); }
+        takeDamage(amount) { this.health = Math.max(0, this.health - amount); showDamageFlash(); }
+        getBounds() { return { x: this.x-5, y: this.y-5, width: this.width+10, height: this.height+10 }; }
+        reset() {
+            this.x = canvasWidth/2 - this.width/2;
+            this.y = canvasHeight - this.height - 20;
+            this.score = 0;
+            this.health = this.maxHealth;
+            this.speedBoost = 0;
+            this.boostTime = 0;
+        }
+    }
+    
+    class FallingObj {
+        constructor(type, intensity) {
+            this.type = type;
+            const list = type === 'good' ? GameItems.good : GameItems.bad;
+            const baseItem = list[Math.floor(Math.random() * list.length)];
+            this.id = baseItem.id;
+            this.name = baseItem.name;
+            this.color = baseItem.color;
+            this.value = baseItem.value;
+            this.shape = baseItem.shape;
+            const scale = getScale();
+            let baseSize = (type === 'good' ? 28 : 30) * Math.min(1.1, scale + 0.7);
+            this.size = Math.max(22, baseSize);
+            this.x = Math.random() * (canvasWidth - this.size - 20) + 10;
+            this.y = -this.size;
+            this.speed = (Math.random() * 2 + 2.2) * intensity;
+            this.rotation = 0;
+            this.rotSpeed = (Math.random() - 0.5) * 0.1;
+            this.wobble = Math.random() * Math.PI*2;
+            this.wobbleSpeed = 0.02;
+        }
+        update() {
+            this.y += this.speed;
+            this.rotation += this.rotSpeed;
+            this.wobble += this.wobbleSpeed;
+            this.x += Math.sin(this.wobble) * 0.8;
+        }
+        draw(ctx) {
+            ctx.save();
+            ctx.translate(this.x + this.size/2, this.y + this.size/2);
+            ctx.rotate(this.rotation);
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = this.type === 'good' ? 8 : 2;
+            ctx.shadowColor = this.color;
+            const half = this.size/2;
+            switch(this.shape) {
+                case 'circle': ctx.beginPath(); ctx.arc(0,0, half,0,Math.PI*2); ctx.fill(); break;
+                case 'square': ctx.fillRect(-half, -half, this.size, this.size); break;
+                case 'triangle': ctx.beginPath(); ctx.moveTo(0,-half); ctx.lineTo(-half, half); ctx.lineTo(half, half); ctx.fill(); break;
+                case 'diamond': ctx.beginPath(); ctx.moveTo(0,-half); ctx.lineTo(half,0); ctx.lineTo(0,half); ctx.lineTo(-half,0); ctx.fill(); break;
             }
-            update() {
-                this.y += this.speed;
-                this.rotation += this.rotationSpeed;
-                this.wobble += this.wobbleSpeed;
-                this.x += Math.sin(this.wobble) * this.wobbleAmount * 0.1 * (this.intensity / 2);
-                if (this.rotation > Math.PI * 2) this.rotation -= Math.PI * 2;
+            if(this.type === 'bad') {
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(-half/1.5, -half/1.5); ctx.lineTo(half/1.5, half/1.5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(half/1.5, -half/1.5); ctx.lineTo(-half/1.5, half/1.5); ctx.stroke();
+            } else {
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(-half/2.5, -half/2.5, half/4, 0, Math.PI*2); ctx.fill();
             }
-            draw(ctx) {
-                ctx.save();
-                const wobbleX = Math.sin(this.wobble) * this.wobbleAmount;
-                ctx.translate(this.x + wobbleX, this.y);
-                ctx.rotate(this.rotation);
-                if (this.type === 'good') { ctx.shadowColor = this.color; ctx.shadowBlur = 10; }
-                ctx.fillStyle = this.color;
-                switch (this.shape) {
-                    case 'circle': ctx.beginPath(); ctx.arc(0, 0, this.size/2, 0, Math.PI*2); ctx.fill(); break;
-                    case 'square': ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size); break;
-                    case 'triangle': ctx.beginPath(); ctx.moveTo(0, -this.size/2); ctx.lineTo(-this.size/2, this.size/2); ctx.lineTo(this.size/2, this.size/2); ctx.fill(); break;
-                    case 'diamond': ctx.beginPath(); ctx.moveTo(0, -this.size/2); ctx.lineTo(-this.size/2, 0); ctx.lineTo(0, this.size/2); ctx.lineTo(this.size/2, 0); ctx.fill(); break;
-                }
-                ctx.shadowBlur = 0;
-                if (this.type === 'good') {
-                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.beginPath(); ctx.arc(-this.size/4, -this.size/4, this.size/6, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+        }
+        getBounds() { return { x: this.x, y: this.y, width: this.size, height: this.size }; }
+        isOffScreen() { return this.y > canvasHeight + this.size; }
+    }
+    
+    // Funciones aux
+    function showDamageFlash() { ui.damageEffect.style.opacity = '0.5'; setTimeout(() => ui.damageEffect.style.opacity = '0', 180); }
+    function showBoostMessage() { ui.boostIndicator.style.display = 'block'; setTimeout(() => ui.boostIndicator.style.display = 'none', 1200); }
+    function updateHealthBarUI() { let percent = (player.health/player.maxHealth)*100; ui.healthFill.style.width = percent+'%'; ui.healthText.textContent = Math.floor(percent)+'%'; }
+    function updateUI() { ui.score.textContent = player.score; let mins = Math.floor(gameTime/3600); let secs = Math.floor((gameTime%3600)/60); ui.time.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`; updateHealthBarUI(); }
+    function updateIntensityUI() { ui.intensity.textContent = gameIntensity.toFixed(1)+'x'; let percent = Math.min(100, (gameIntensity-1)/4*100); ui.intensityFill.style.width = percent+'%'; }
+    
+    function updateGameDifficulty() {
+        let target = 1.0 + Math.floor(player.score / 100) * 0.1;
+        if(target > gameIntensity) gameIntensity = Math.min(target, gameIntensity + 0.003);
+        updateIntensityUI();
+        spawnRate = Math.max(42, Math.floor(85 / gameIntensity));
+        objectsPerSpawn = Math.min(1 + Math.floor(gameIntensity * 0.8), 4);
+    }
+    
+    function spawnObject() {
+        let badProb = Math.min(0.2 + gameIntensity * 0.06, 0.65);
+        for(let i=0;i<objectsPerSpawn;i++) {
+            let type = Math.random() < badProb ? 'bad' : 'good';
+            fallingObjects.push(new FallingObj(type, gameIntensity));
+        }
+    }
+    
+    function checkCollisions() {
+        for(let i=0;i<fallingObjects.length;i++) {
+            let obj = fallingObjects[i];
+            let objBounds = obj.getBounds();
+            let playerBounds = player.getBounds();
+            if(objBounds.x < playerBounds.x+playerBounds.width && objBounds.x+objBounds.width > playerBounds.x &&
+               objBounds.y < playerBounds.y+playerBounds.height && objBounds.y+objBounds.height > playerBounds.y) {
+                if(obj.type === 'good') {
+                    player.score += obj.value;
+                    if(Math.random()<0.18) player.applySpeedBoost();
                 } else {
-                    ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.moveTo(-this.size/3, -this.size/3); ctx.lineTo(this.size/3, this.size/3); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(this.size/3, -this.size/3); ctx.lineTo(-this.size/3, this.size/3); ctx.stroke();
+                    player.takeDamage(Math.abs(obj.value));
+                    if(player.health <= 0) gameOver();
                 }
-                ctx.restore();
+                fallingObjects.splice(i,1);
+                i--;
             }
-            getBounds() { return { x: this.x - this.size/2, y: this.y - this.size/2, width: this.size, height: this.size }; }
-            isOffScreen() { return this.y > GameConfig.baseHeight + this.size; }
         }
-
-        // ======================= UI Y FUNCIONES DE CONTROL =======================
-        const uiElements = {
-            score: document.getElementById('score'),
-            intensity: document.getElementById('intensity'),
-            time: document.getElementById('time'),
-            healthFill: document.getElementById('healthFill'),
-            healthText: document.getElementById('healthText'),
-            boostIndicator: document.getElementById('boostIndicator'),
-            damageEffect: document.getElementById('damageEffect'),
-            startScreen: document.getElementById('startScreen'),
-            pauseScreen: document.getElementById('pauseScreen'),
-            gameOverScreen: document.getElementById('gameOverScreen'),
-            finalScore: document.getElementById('finalScore'),
-            finalIntensity: document.getElementById('finalIntensity'),
-            finalTime: document.getElementById('finalTime'),
-            recordScore: document.getElementById('recordScore'),
-            recordDetails: document.getElementById('recordDetails'),
-            recordContainer: document.getElementById('recordContainer'),
-            newRecordMessage: document.getElementById('newRecordMessage')
-        };
-
-        function updateHealthBar(health, maxHealth) {
-            const percentage = (health / maxHealth) * 100;
-            uiElements.healthFill.style.width = `${percentage}%`;
-            uiElements.healthText.textContent = `${Math.round(percentage)}%`;
+    }
+    
+    function gameLoopUpdate() {
+        if(gameState !== 'PLAYING') return;
+        gameTime++;
+        updateGameDifficulty();
+        spawnTimer++;
+        if(spawnTimer >= spawnRate) { spawnObject(); spawnTimer = 0; }
+        for(let i=0;i<fallingObjects.length;i++) { fallingObjects[i].update(); if(fallingObjects[i].isOffScreen()) { fallingObjects.splice(i,1); i--; } }
+        checkCollisions();
+        if(player.health <= 0) gameOver();
+        player.update(gameTime);
+    }
+    
+    function drawGame() {
+        if(!ctx) return;
+        const grad = ctx.createLinearGradient(0,0,0,canvasHeight);
+        grad.addColorStop(0,'#0f0f25'); grad.addColorStop(1,'#1a1a35');
+        ctx.fillStyle=grad; ctx.fillRect(0,0,canvasWidth,canvasHeight);
+        fallingObjects.forEach(obj=>obj.draw(ctx));
+        player.draw(ctx);
+    }
+    
+    function gameOver() {
+        if(gameState !== 'PLAYING') return;
+        gameState = 'GAME_OVER';
+        let finalScoreVal = player.score;
+        let finalIntensityVal = gameIntensity;
+        let finalTimeVal = gameTime;
+        ui.finalScore.textContent = finalScoreVal;
+        ui.finalIntensity.textContent = finalIntensityVal.toFixed(1)+'x';
+        let mins=Math.floor(finalTimeVal/3600), secs=Math.floor((finalTimeVal%3600)/60);
+        ui.finalTime.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+        let isNew = false;
+        if(finalScoreVal > highScore.score) {
+            highScore = { score: finalScoreVal, intensity: finalIntensityVal, time: finalTimeVal, date: new Date().toISOString() };
+            localStorage.setItem('fitFrenzyHigh', JSON.stringify(highScore));
+            isNew = true;
         }
-        function showDamageEffect() { uiElements.damageEffect.style.opacity = '0.5'; setTimeout(() => uiElements.damageEffect.style.opacity = '0', 200); }
-        function updateUI(score, gameTime, health, maxHealth) {
-            uiElements.score.textContent = score;
-            updateHealthBar(health, maxHealth);
-            const minutes = Math.floor(gameTime / 3600);
-            const seconds = Math.floor((gameTime % 3600) / 60);
-            uiElements.time.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        let recordMins = Math.floor(highScore.time/3600), recordSecs = Math.floor((highScore.time%3600)/60);
+        ui.recordScore.textContent = highScore.score;
+        ui.recordDetails.innerHTML = `Intensidad: ${highScore.intensity.toFixed(1)}x | Tiempo: ${recordMins.toString().padStart(2,'0')}:${recordSecs.toString().padStart(2,'0')}`;
+        if(isNew) ui.newRecordMessage.style.display = 'block';
+        else ui.newRecordMessage.style.display = 'none';
+        ui.gameOverScreen.classList.remove('hidden');
+    }
+    
+    function startNewGame() {
+        gameState = 'PLAYING';
+        fallingObjects = [];
+        spawnTimer = 0;
+        gameTime = 0;
+        gameIntensity = 1.0;
+        objectsPerSpawn = 1;
+        spawnRate = 85;
+        lastIntensityUpdate = 0;
+        player.reset();
+        player.score = 0;
+        player.health = 100;
+        updateHealthBarUI();
+        updateUI();
+        updateIntensityUI();
+        ui.startScreen.classList.add('hidden');
+        ui.pauseScreen.classList.add('hidden');
+        ui.gameOverScreen.classList.add('hidden');
+    }
+    
+    function pauseGame() { if(gameState === 'PLAYING') { gameState = 'PAUSED'; ui.pauseScreen.classList.remove('hidden'); } }
+    function resumeGame() { if(gameState === 'PAUSED') { gameState = 'PLAYING'; ui.pauseScreen.classList.add('hidden'); } }
+    function menuPrincipal() { gameState = 'START'; ui.startScreen.classList.remove('hidden'); ui.pauseScreen.classList.add('hidden'); ui.gameOverScreen.classList.add('hidden'); }
+    
+    function resizeAndAdapt() {
+        const container = document.getElementById('gameContainer');
+        canvasWidth = container.clientWidth;
+        canvasHeight = container.clientHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        if(player) {
+            player.width = Math.max(70, canvasWidth * 0.18);
+            player.height = Math.max(35, canvasHeight * 0.07);
+            player.y = canvasHeight - player.height - 20;
+            player.x = Math.min(Math.max(player.x, 0), canvasWidth - player.width);
+            player.speed = Math.max(7, canvasWidth * 0.025);
         }
-        function showBoostIndicator() { uiElements.boostIndicator.style.display = 'block'; setTimeout(() => uiElements.boostIndicator.style.display = 'none', 1500); }
-
-        const GameScreens = {
-            showStartScreen: () => { uiElements.startScreen.classList.remove('hidden'); uiElements.pauseScreen.classList.add('hidden'); uiElements.gameOverScreen.classList.add('hidden'); gameState = GameState.START; },
-            hideStartScreen: () => uiElements.startScreen.classList.add('hidden'),
-            showPauseScreen: () => uiElements.pauseScreen.classList.remove('hidden'),
-            hidePauseScreen: () => uiElements.pauseScreen.classList.add('hidden'),
-            showGameOverScreen: (score, intensity, gameTime) => {
-                uiElements.finalScore.textContent = score;
-                uiElements.finalIntensity.textContent = `${intensity.toFixed(1)}x`;
-                const minutes = Math.floor(gameTime / 3600);
-                const seconds = Math.floor((gameTime % 3600) / 60);
-                uiElements.finalTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                uiElements.recordScore.textContent = highScore.score;
-                const recordMinutes = Math.floor(highScore.time / 3600);
-                const recordSeconds = Math.floor((highScore.time % 3600) / 60);
-                const recordTimeFormatted = `${recordMinutes.toString().padStart(2, '0')}:${recordSeconds.toString().padStart(2, '0')}`;
-                let detailsText = `Intensidad: ${highScore.intensity.toFixed(1)}x | Tiempo: ${recordTimeFormatted}`;
-                if (highScore.date) detailsText += ` | Fecha: ${new Date(highScore.date).toLocaleDateString()}`;
-                uiElements.recordDetails.textContent = detailsText;
-                const isNewRecord = checkAndUpdateHighScore(score, intensity, gameTime);
-                if (isNewRecord) { uiElements.newRecordMessage.style.display = 'block'; uiElements.recordContainer.classList.add('new-record'); createConfettiEffect(); } 
-                else { uiElements.newRecordMessage.style.display = 'none'; uiElements.recordContainer.classList.remove('new-record'); }
-                uiElements.gameOverScreen.classList.remove('hidden');
-            },
-            hideGameOverScreen: () => uiElements.gameOverScreen.classList.add('hidden')
-        };
-
-        function createConfettiEffect() { /* confeti */ }
-
-        function initControls() {
-            document.addEventListener('keydown', (e) => {
-                keys[e.key.toLowerCase()] = true;
-                if (e.key === ' ' || e.key === 'p' || e.key === 'P') { e.preventDefault(); if (gameState === GameState.PLAYING) pauseGame(); else if (gameState === GameState.PAUSED) resumeGame(); }
-                if (e.key === 'Escape' && gameState === GameState.PLAYING) pauseGame();
-            });
-            document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
-            const leftBtn = document.getElementById('leftButton'), rightBtn = document.getElementById('rightButton');
-            const touchStart = (e, dir) => { e.preventDefault(); if(dir==='left') { keys['arrowleft']=true; keys['arrowright']=false; } else { keys['arrowright']=true; keys['arrowleft']=false; } };
-            const touchEnd = (e) => { e.preventDefault(); keys['arrowleft']=false; keys['arrowright']=false; };
-            leftBtn.addEventListener('touchstart', e=>touchStart(e,'left')); leftBtn.addEventListener('touchend', touchEnd);
-            rightBtn.addEventListener('touchstart', e=>touchStart(e,'right')); rightBtn.addEventListener('touchend', touchEnd);
+    }
+    
+    function loadHighScoreStorage() {
+        try { let saved = localStorage.getItem('fitFrenzyHigh'); if(saved) { highScore = JSON.parse(saved); } } catch(e) {}
+        document.getElementById('startRecordScore').innerText = highScore.score;
+        let mins = Math.floor(highScore.time/3600), secs = Math.floor((highScore.time%3600)/60);
+        document.getElementById('startRecordDetails').innerHTML = `Intensidad: ${highScore.intensity.toFixed(1)}x | Tiempo: ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    }
+    
+    function resetHighScoreConfirm() {
+        if(confirm('¿Reiniciar récord permanentemente?')) {
+            highScore = { score: 0, intensity: 1.0, time: 0, date: null };
+            localStorage.setItem('fitFrenzyHigh', JSON.stringify(highScore));
+            loadHighScoreStorage();
         }
-
-        function processControls() {
-            if (keys['arrowleft'] || keys['a']) player.move('left');
-            if (keys['arrowright'] || keys['d']) player.move('right');
+    }
+    
+    function generateItemsListUI() {
+        const goodDiv = document.getElementById('goodItemsList');
+        const badDiv = document.getElementById('badItemsList');
+        goodDiv.innerHTML = ''; badDiv.innerHTML = '';
+        GameItems.good.forEach(i => { goodDiv.innerHTML += `<div class="object-item"><span class="object-bullet" style="color:${i.color}">●</span><span>${i.name} (+${i.value}p)</span></div>`; });
+        GameItems.bad.forEach(i => { badDiv.innerHTML += `<div class="object-item"><span class="object-bullet" style="color:${i.color}">●</span><span>${i.name} (${i.value} salud)</span></div>`; });
+    }
+    
+    function initControls() {
+        window.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowLeft') keys.ArrowLeft = true;
+            if(e.key === 'ArrowRight') keys.ArrowRight = true;
+            if(e.key === 'p' || e.key === 'P') { if(gameState === 'PLAYING') pauseGame(); else if(gameState === 'PAUSED') resumeGame(); e.preventDefault(); }
+        });
+        window.addEventListener('keyup', (e) => { if(e.key === 'ArrowLeft') keys.ArrowLeft = false; if(e.key === 'ArrowRight') keys.ArrowRight = false; });
+        const leftBtn = document.getElementById('leftButton'), rightBtn = document.getElementById('rightButton');
+        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowLeft = true; });
+        leftBtn.addEventListener('touchend', (e) => { keys.ArrowLeft = false; });
+        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowRight = true; });
+        rightBtn.addEventListener('touchend', (e) => { keys.ArrowRight = false; });
+        leftBtn.addEventListener('mousedown', () => keys.ArrowLeft = true);
+        leftBtn.addEventListener('mouseup', () => keys.ArrowLeft = false);
+        rightBtn.addEventListener('mousedown', () => keys.ArrowRight = true);
+        rightBtn.addEventListener('mouseup', () => keys.ArrowRight = false);
+    }
+    
+    function animate() {
+        if(gameState === 'PLAYING') {
+            if(keys.ArrowLeft) player.move('left');
+            if(keys.ArrowRight) player.move('right');
+            gameLoopUpdate();
+            drawGame();
+            updateUI();
+        } else if(gameState === 'START') {
+            drawGame();
+        } else if(gameState === 'GAME_OVER') {
+            drawGame();
+        } else {
+            drawGame();
         }
-
-        function checkCollision(rect1, rect2) { return rect1.x < rect2.x+rect2.width && rect1.x+rect1.width > rect2.x && rect1.y < rect2.y+rect2.height && rect1.y+rect1.height > rect2.y; }
-
-        function generateItemsList() {
-            const goodList = document.getElementById('goodItemsList'), badList = document.getElementById('badItemsList');
-            goodList.innerHTML = ''; badList.innerHTML = '';
-            GameConfig.goodItems.forEach(item => {
-                const div = document.createElement('div'); div.className = 'object-item';
-                div.innerHTML = `<span class="object-bullet" style="color:${item.color}">●</span><span class="object-name" style="color:${item.color}">${item.name} (+${item.value}p)</span>`;
-                goodList.appendChild(div);
-            });
-            GameConfig.badItems.forEach(item => {
-                const div = document.createElement('div'); div.className = 'object-item';
-                div.innerHTML = `<span class="object-bullet" style="color:${item.color}">●</span><span class="object-name" style="color:${item.color}">${item.name} (${item.value} salud)</span>`;
-                badList.appendChild(div);
-            });
-        }
-
-        // ======================= LÓGICA PRINCIPAL =======================
-        let animationFrame;
-        function startGame() { gameState = GameState.PLAYING; GameScreens.hideStartScreen(); resetGame(); if (navigator.vibrate && isMobile) navigator.vibrate(100); }
-        function pauseGame() { if (gameState === GameState.PLAYING) { gameState = GameState.PAUSED; GameScreens.showPauseScreen(); } }
-        function resumeGame() { if (gameState === GameState.PAUSED) { gameState = GameState.PLAYING; GameScreens.hidePauseScreen(); } }
-        function restartGame() { gameState = GameState.PLAYING; GameScreens.hideStartScreen(); GameScreens.hidePauseScreen(); GameScreens.hideGameOverScreen(); resetGame(); }
-        function resetGame() { player.reset(); fallingObjects = []; spawnTimer = 0; spawnRate = GameConfig.initialSpawnRate; gameTime = 0; lastCollisionEffect = 0; objectsPerSpawn = 1; gameIntensity = 1.0; lastIntensityUpdate = 0; updateHealthBar(player.health, player.maxHealth); updateIntensityUI(); updateUI(player.score, gameTime, player.health, player.maxHealth); }
-        function spawnObject() { const badProb = Math.min(0.2 + gameIntensity * 0.05, 0.6); for(let i=0;i<objectsPerSpawn;i++) { setTimeout(() => { const type = Math.random() < badProb ? 'bad' : 'good'; fallingObjects.push(new FallingObject(type, gameIntensity)); }, Math.random() * 20); } }
-        function updateGame() {
-            spawnTimer++;
-            if (spawnTimer >= spawnRate) { spawnObject(); spawnTimer = 0; }
-            updateGameIntensity();
-            for (let i = fallingObjects.length-1; i >= 0; i--) {
-                const obj = fallingObjects[i]; obj.update();
-                if (checkCollision(player.getBounds(), obj.getBounds())) {
-                    if (obj.type === 'good') { player.score += obj.value; if (Math.random() < 0.20) { player.applySpeedBoost(); showBoostIndicator(); } } 
-                    else { player.takeDamage(Math.abs(obj.value)); if (player.health <= 0) { gameOver(); return; } }
-                    lastCollisionEffect = gameTime;
-                    fallingObjects.splice(i,1);
-                } else if (obj.isOffScreen()) fallingObjects.splice(i,1);
-            }
-            gameTime++;
-        }
-        function gameOver() { gameState = GameState.GAME_OVER; GameScreens.showGameOverScreen(player.score, gameIntensity, gameTime); if (navigator.vibrate && isMobile) navigator.vibrate([200,100,200,100,200]); }
-
-        function drawBackground() {
-            const grad = ctx.createLinearGradient(0,0,0,GameConfig.baseHeight);
-            grad.addColorStop(0,'#0f0f25'); grad.addColorStop(1,'#1a1a35');
-            ctx.fillStyle=grad; ctx.fillRect(0,0,GameConfig.baseWidth,GameConfig.baseHeight);
-        }
-        function drawObjects() { fallingObjects.forEach(obj=>obj.draw(ctx)); }
-        function drawGameScreen() { drawBackground(); drawObjects(); player.draw(ctx); }
-
-        function resizeCanvas() {
-            canvas.width = GameConfig.baseWidth; canvas.height = GameConfig.baseHeight;
-            const scaleX = window.innerWidth / GameConfig.baseWidth, scaleY = window.innerHeight / GameConfig.baseHeight;
-            canvasScale = Math.min(scaleX, scaleY);
-            canvas.style.width = (GameConfig.baseWidth * canvasScale) + 'px';
-            canvas.style.height = (GameConfig.baseHeight * canvasScale) + 'px';
-        }
-
-        function gameLoop() {
-            if (gameState === GameState.PLAYING) {
-                processControls();
-                player.update(gameTime);
-                updateGame();
-                drawGameScreen();
-                updateUI(player.score, gameTime, player.health, player.maxHealth);
-            }
-            requestAnimationFrame(gameLoop);
-        }
-
-        function setupButtons() {
-            document.getElementById('startButton').addEventListener('click', startGame);
-            document.getElementById('resumeButton').addEventListener('click', resumeGame);
-            document.getElementById('restartButton').addEventListener('click', restartGame);
-            document.getElementById('playAgainButton').addEventListener('click', restartGame);
-            document.getElementById('menuButton').addEventListener('click', () => GameScreens.showStartScreen());
-            document.getElementById('menuButton2').addEventListener('click', () => GameScreens.showStartScreen());
-            document.getElementById('resetRecordButton').addEventListener('click', resetHighScore);
-        }
-
-        function initGame() {
-            canvas = document.getElementById('gameCanvas'); ctx = canvas.getContext('2d');
-            resizeCanvas(); loadHighScore(); player = new Player(); initControls(); updateHealthBar(player.health, player.maxHealth); updateIntensityUI(); generateItemsList(); setupButtons(); gameLoop();
-            window.addEventListener('resize', resizeCanvas);
-            window.addEventListener('orientationchange', () => setTimeout(resizeCanvas,100));
-        }
-
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initGame);
-        else initGame();
-    </script>
+        requestAnimationFrame(animate);
+    }
+    
+    function init() {
+        canvas = document.getElementById('gameCanvas');
+        ctx = canvas.getContext('2d');
+        resizeAndAdapt();
+        player = new Player();
+        loadHighScoreStorage();
+        generateItemsListUI();
+        initControls();
+        document.getElementById('startButton').onclick = () => startNewGame();
+        document.getElementById('resumeButton').onclick = () => resumeGame();
+        document.getElementById('restartButton').onclick = () => { startNewGame(); };
+        document.getElementById('playAgainButton').onclick = () => { startNewGame(); };
+        document.getElementById('menuButton').onclick = menuPrincipal;
+        document.getElementById('menuButton2').onclick = menuPrincipal;
+        document.getElementById('resetRecordButton').onclick = resetHighScoreConfirm;
+        window.addEventListener('resize', () => { resizeAndAdapt(); if(player) player.reset(); });
+        animate();
+    }
+    init();
+</script>
 </body>
 </html>
