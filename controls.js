@@ -12,8 +12,11 @@ export function initControls(onPause, onResume) {
         if (e.key === 'ArrowLeft') keys.ArrowLeft = true;
         if (e.key === 'ArrowRight') keys.ArrowRight = true;
         if (e.key === 'p' || e.key === 'P') {
-            if (onPause && onResume) {
-                // La lógica de pausa la maneja main.js, aquí solo notificamos
+            if (pauseCallback) {
+                // Llamar a la función correspondiente según el estado actual
+                // Nota: el estado real del juego se maneja en main, pero podemos invocar
+                // un evento personalizado o simplemente llamar a los callbacks.
+                // Usaremos un evento para que main decida.
                 document.dispatchEvent(new CustomEvent('togglePause'));
             }
             e.preventDefault();
