@@ -1,11 +1,10 @@
-// Elementos del DOM que se actualizan con frecuencia
+// Elementos del DOM que se actualizan (se asignan desde main.js)
 let uiElements = {};
 
 export function setUIElements(elements) {
     uiElements = elements;
 }
 
-// Actualiza la barra de salud y el texto
 export function updateHealthBarUI(health, maxHealth) {
     if (!uiElements.healthFill || !uiElements.healthText) return;
     const percent = (health / maxHealth) * 100;
@@ -13,7 +12,6 @@ export function updateHealthBarUI(health, maxHealth) {
     uiElements.healthText.textContent = Math.floor(percent) + '%';
 }
 
-// Actualiza el marcador y el tiempo
 export function updateUI(score, gameTime) {
     if (uiElements.score) uiElements.score.textContent = score;
     if (uiElements.time) {
@@ -23,7 +21,6 @@ export function updateUI(score, gameTime) {
     }
 }
 
-// Actualiza la intensidad visual
 export function updateIntensityUI(intensity) {
     if (uiElements.intensity) uiElements.intensity.textContent = intensity.toFixed(1) + 'x';
     if (uiElements.intensityFill) {
@@ -32,7 +29,6 @@ export function updateIntensityUI(intensity) {
     }
 }
 
-// Efecto de flash rojo al recibir daño
 export function showDamageFlash() {
     const damageEffect = document.getElementById('damageEffect');
     if (damageEffect) {
@@ -41,7 +37,6 @@ export function showDamageFlash() {
     }
 }
 
-// Mensaje de boost
 export function showBoostMessage() {
     const indicator = document.getElementById('boostIndicator');
     if (indicator) {
@@ -50,7 +45,6 @@ export function showBoostMessage() {
     }
 }
 
-// Cargar récord desde localStorage
 export function loadHighScore() {
     let highScore = { score: 0, intensity: 1.0, time: 0, date: null };
     try {
@@ -60,12 +54,10 @@ export function loadHighScore() {
     return highScore;
 }
 
-// Guardar récord
 export function saveHighScore(highScore) {
     localStorage.setItem('fitFrenzyHigh', JSON.stringify(highScore));
 }
 
-// Actualizar la pantalla de inicio con el récord
 export function updateStartScreenRecord(highScore) {
     const startRecordScore = document.getElementById('startRecordScore');
     const startRecordDetails = document.getElementById('startRecordDetails');
