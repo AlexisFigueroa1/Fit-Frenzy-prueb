@@ -1,70 +1,44 @@
-// Elementos del DOM que se actualizan (se asignan desde main.js)
-let uiElements = {};
+let keys = { ArrowLeft: false, ArrowRight: false };
+let pauseCallback = null;
 
-export function setUIElements(elements) {
-    uiElements = elements;
+export function getKeys() {
+    return keys;
 }
 
-export function updateHealthBarUI(health, maxHealth) {
-    if (!uiElements.healthFill || !uiElements.healthText) return;
-    const percent = (health / maxHealth) * 100;
-    uiElements.healthFill.style.width = percent + '%';
-    uiElements.healthText.textContent = Math.floor(percent) + '%';
-}
+export function initControls(onPause, onResume) {
+    pauseCallback = { onPause, onResume };
 
-export function updateUI(score, gameTime) {
-    if (uiElements.score) uiElements.score.textContent = score;
-    if (uiElements.time) {
-        const mins = Math.floor(gameTime / 3600);
-        const secs = Math.floor((gameTime % 3600) / 60);
-        uiElements.time.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') keys.ArrowLeft = true;
+        if (e.key === 'ArrowRight') keys.ArrowRight = true;
+        if (e.key === 'p' || e.key === 'P') {
+            if (pauseCallback) {
+                // Llamar a la función correspondiente según el estado actual
+                // Nota: el estado real del juego se maneja en main, pero podemos invocar
+                // un evento personalizado o simplemente llamar a los callbacks.
+                // Usaremos un evento para que main decida.
+                document.dispatchEvent(new CustomEvent('togglePause'));
+            }
+            e.preventDefault();
+        }
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft') keys.ArrowLeft = false;
+        if (e.key === 'ArrowRight') keys.ArrowRight = false;
+    });
+
+    const leftBtn = document.getElementById('leftButton');
+    const rightBtn = document.getElementById('rightButton');
+    if (leftBtn) {
+        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowLeft = true; });
+        leftBtn.addEventListener('touchend', () => { keys.ArrowLeft = false; });
+        leftBtn.addEventListener('mousedown', () => { keys.ArrowLeft = true; });
+        leftBtn.addEventListener('mouseup', () => { keys.ArrowLeft = false; });
     }
-}
-
-export function updateIntensityUI(intensity) {
-    if (uiElements.intensity) uiElements.intensity.textContent = intensity.toFixed(1) + 'x';
-    if (uiElements.intensityFill) {
-        const percent = Math.min(100, (intensity - 1) / 4 * 100);
-        uiElements.intensityFill.style.width = percent + '%';
-    }
-}
-
-export function showDamageFlash() {
-    const damageEffect = document.getElementById('damageEffect');
-    if (damageEffect) {
-        damageEffect.style.opacity = '0.5';
-        setTimeout(() => damageEffect.style.opacity = '0', 180);
-    }
-}
-
-export function showBoostMessage() {
-    const indicator = document.getElementById('boostIndicator');
-    if (indicator) {
-        indicator.style.display = 'block';
-        setTimeout(() => indicator.style.display = 'none', 1200);
-    }
-}
-
-export function loadHighScore() {
-    let highScore = { score: 0, intensity: 1.0, time: 0, date: null };
-    try {
-        const saved = localStorage.getItem('fitFrenzyHigh');
-        if (saved) highScore = JSON.parse(saved);
-    } catch (e) {}
-    return highScore;
-}
-
-export function saveHighScore(highScore) {
-    localStorage.setItem('fitFrenzyHigh', JSON.stringify(highScore));
-}
-
-export function updateStartScreenRecord(highScore) {
-    const startRecordScore = document.getElementById('startRecordScore');
-    const startRecordDetails = document.getElementById('startRecordDetails');
-    if (startRecordScore) startRecordScore.innerText = highScore.score;
-    if (startRecordDetails) {
-        const mins = Math.floor(highScore.time / 3600);
-        const secs = Math.floor((highScore.time % 3600) / 60);
-        startRecordDetails.innerHTML = `Intensidad: ${highScore.intensity.toFixed(1)}x | Tiempo: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    if (rightBtn) {
+        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowRight = true; });
+        rightBtn.addEventListener('touchend', () => { keys.ArrowRight = false; });
+        rightBtn.addEventListener('mousedown', () => { keys.ArrowRight = true; });
+        rightBtn.addEventListener('mouseup', () => { keys.ArrowRight = false; });
     }
 }
