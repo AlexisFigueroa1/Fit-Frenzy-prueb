@@ -75,9 +75,10 @@ export function initMenuButtons(onStart, onRestart, onMenu, onResetRecord) {
     if (playAgainBtn) playAgainBtn.onclick = () => onRestart();
     if (menuBtn2) menuBtn2.onclick = () => onMenu();
 
-    // Evento personalizado para pausa desde controles
+    // Escuchar el evento de pausa desde los controles
     document.addEventListener('togglePause', () => {
-        // La lógica de pausa la gestiona main.js, pero podemos notificar
-        // Para simplificar, main.js se suscribirá a este evento.
+        // La lógica de pausa se maneja en main mediante callbacks
+        // Notificamos mediante un evento personalizado que main escuchará
+        document.dispatchEvent(new CustomEvent('requestPauseToggle'));
     });
 }
