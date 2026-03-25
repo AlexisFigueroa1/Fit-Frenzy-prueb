@@ -16,16 +16,13 @@
             touch-action: manipulation;
         }
         
-        /* CORRECCIÓN CRÍTICA: Asegurar que html y body ocupen el 100% de la pantalla sin márgenes */
+        /* 🔧 CAMBIO 1: html, body ahora ocupan todo sin position:fixed */
         html, body {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
             overflow: hidden;
-            position: fixed;
-            top: 0;
-            left: 0;
         }
         
         body {
@@ -37,13 +34,12 @@
             touch-action: manipulation;
         }
         
-        /* Contenedor principal: ocupa toda la pantalla de forma absoluta y sin desbordes */
+        /* 🔧 CAMBIO 2: #gameContainer ahora usa relative y viewport dinámico */
         #gameContainer {
-            position: absolute;
-            top: 0;
-            left: 0;
+            position: relative;
             width: 100%;
-            height: 100%;
+            height: 100vh;
+            height: 100dvh; /* 🔥 el fix clave para móviles */
             overflow: hidden;
             background: #0f0f25;
             touch-action: none;
