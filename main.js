@@ -27,7 +27,7 @@ let objectsPerSpawn = 1;
 let gameIntensity = 1.0;
 let highScore = loadHighScore();
 
-// --- Clase Player (igual que original) ---
+// --- Clase Player (sin cambios) ---
 class Player {
     constructor() {
         this.updateDimensions();
@@ -109,7 +109,7 @@ class Player {
     }
 }
 
-// --- Clase FallingObj (igual que original) ---
+// --- Clase FallingObj (sin cambios) ---
 class FallingObj {
     constructor(type, intensity) {
         this.type = type;
@@ -296,7 +296,6 @@ function resumeGame() {
 function returnToMenu() {
     gameState = 'START';
     showStartScreen();
-    // Reiniciar variables visuales
     if (player) player.reset();
     fallingObjects = [];
     document.getElementById('pauseScreen').classList.add('hidden');
@@ -342,6 +341,13 @@ function init() {
     populateItemsList();
     initControls(pauseGame, resumeGame);
     initMenuButtons(startNewGame, startNewGame, returnToMenu, (newRecord) => { highScore = newRecord; });
+
+    // Escuchar el evento de pausa desde los controles
+    document.addEventListener('requestPauseToggle', () => {
+        if (gameState === 'PLAYING') pauseGame();
+        else if (gameState === 'PAUSED') resumeGame();
+    });
+
     showStartScreen();
     window.addEventListener('resize', () => {
         resizeAndAdapt();
