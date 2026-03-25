@@ -16,29 +16,40 @@
             touch-action: manipulation;
         }
         
+        /* CORRECCIÓN CRÍTICA: Asegurar que html y body ocupen el 100% de la pantalla sin márgenes */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        
         body {
             background-color: #0a0a1a;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
             color: #f0f0f0;
             touch-action: manipulation;
-            position: fixed;
-            width: 100%;
-            height: 100%;
         }
         
+        /* Contenedor principal: ocupa toda la pantalla de forma absoluta y sin desbordes */
         #gameContainer {
-            position: relative;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
             background: #0f0f25;
+            touch-action: none;
         }
         
-        /* Canvas ahora ocupa TODO el contenedor sin transformaciones que causen cortes */
+        /* Canvas: Ocupa el 100% del contenedor sin transformaciones que causen cortes */
         canvas {
             position: absolute;
             top: 0;
@@ -54,7 +65,7 @@
         /* UI optimizada para móvil - posicionamiento fijo dentro del contenedor */
         #ui {
             position: absolute;
-            top: 12px;
+            top: env(safe-area-inset-top, 12px);
             left: 0;
             right: 0;
             width: 100%;
@@ -273,10 +284,10 @@
             padding: 0 8px;
         }
         
-        /* Controles táctiles */
+        /* Controles táctiles - ajustados con safe-area para no quedar fuera */
         #touchControls {
             position: absolute;
-            bottom: 20px;
+            bottom: max(20px, env(safe-area-inset-bottom, 20px));
             left: 0;
             right: 0;
             display: flex;
@@ -400,7 +411,12 @@
         @media (max-height: 700px) {
             .objects-list { max-height: 35vh; }
             .touch-button { width: 55px; height: 55px; font-size: 28px; }
-            #touchControls { bottom: 10px; }
+            #touchControls { bottom: max(10px, env(safe-area-inset-bottom, 10px)); }
+        }
+        
+        /* Corrección extra: asegurar que ningún elemento genere scroll externo */
+        ::-webkit-scrollbar {
+            width: 4px;
         }
     </style>
 </head>
@@ -521,14 +537,12 @@
     
     // Helper escala dinámica según tamaño real del canvas
     function getScale() {
-        return Math.min(1, canvasWidth / 420); // base referencia 420px
+        return Math.min(1, canvasWidth / 420);
     }
     
     class Player {
         constructor() {
-            const scale = getScale();
-            this.width = Math.max(70, Math.min(110, canvasWidth * 0.18));
-            this.height = Math.max(35, canvasHeight * 0.07);
+            this.updateDimensions();
             this.x = canvasWidth/2 - this.width/2;
             this.y = canvasHeight - this.height - 20;
             this.speed = Math.max(7, canvasWidth * 0.025);
@@ -540,10 +554,18 @@
             this.boostTime = 0;
             this.armOffset = 0;
         }
+        
+        updateDimensions() {
+            this.width = Math.max(70, Math.min(110, canvasWidth * 0.18));
+            this.height = Math.max(35, canvasHeight * 0.07);
+            this.speed = Math.max(7, canvasWidth * 0.025);
+        }
+        
         update(t) {
             this.armOffset = Math.sin(t * 0.008) * 6;
             if (this.boostTime > 0) { this.boostTime--; if(this.boostTime === 0) this.speedBoost = 0; }
         }
+        
         draw(ctx) {
             ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -567,6 +589,7 @@
                 ctx.fill();
             }
         }
+        
         move(dir) {
             let moveSpeed = this.speed + this.speedBoost;
             if(dir === 'left') this.x -= moveSpeed;
@@ -574,10 +597,13 @@
             if(this.x < 0) this.x = 0;
             if(this.x > canvasWidth - this.width) this.x = canvasWidth - this.width;
         }
+        
         applySpeedBoost() { this.speedBoost = 6; this.boostTime = 150; showBoostMessage(); }
         takeDamage(amount) { this.health = Math.max(0, this.health - amount); showDamageFlash(); }
         getBounds() { return { x: this.x-5, y: this.y-5, width: this.width+10, height: this.height+10 }; }
+        
         reset() {
+            this.updateDimensions();
             this.x = canvasWidth/2 - this.width/2;
             this.y = canvasHeight - this.height - 20;
             this.score = 0;
@@ -599,7 +625,7 @@
             this.shape = baseItem.shape;
             const scale = getScale();
             let baseSize = (type === 'good' ? 28 : 30) * Math.min(1.1, scale + 0.7);
-            this.size = Math.max(22, baseSize);
+            this.size = Math.max(22, Math.min(baseSize, canvasWidth * 0.12));
             this.x = Math.random() * (canvasWidth - this.size - 20) + 10;
             this.y = -this.size;
             this.speed = (Math.random() * 2 + 2.2) * intensity;
@@ -762,10 +788,9 @@
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         if(player) {
-            player.width = Math.max(70, canvasWidth * 0.18);
-            player.height = Math.max(35, canvasHeight * 0.07);
-            player.y = canvasHeight - player.height - 20;
+            player.updateDimensions();
             player.x = Math.min(Math.max(player.x, 0), canvasWidth - player.width);
+            player.y = canvasHeight - player.height - 20;
             player.speed = Math.max(7, canvasWidth * 0.025);
         }
     }
@@ -818,12 +843,8 @@
             gameLoopUpdate();
             drawGame();
             updateUI();
-        } else if(gameState === 'START') {
-            drawGame();
-        } else if(gameState === 'GAME_OVER') {
-            drawGame();
         } else {
-            drawGame();
+            drawGame(); // Mantener el canvas actualizado en otros estados
         }
         requestAnimationFrame(animate);
     }
@@ -843,7 +864,7 @@
         document.getElementById('menuButton').onclick = menuPrincipal;
         document.getElementById('menuButton2').onclick = menuPrincipal;
         document.getElementById('resetRecordButton').onclick = resetHighScoreConfirm;
-        window.addEventListener('resize', () => { resizeAndAdapt(); if(player) player.reset(); });
+        window.addEventListener('resize', () => { resizeAndAdapt(); if(player && gameState !== 'PLAYING') player.reset(); });
         animate();
     }
     init();
