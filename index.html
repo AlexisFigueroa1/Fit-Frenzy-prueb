@@ -1,36 +1,65 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fit Frenzy</title>
-
-<link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Fit Frenzy - Arcade Fitness Game</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
 <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
-
+    <div id="damageEffect" class="damage-effect"></div>
+    
     <div id="ui">
-        <div>PUNTOS: <span id="score">0</span></div>
+        <div id="scoreContainer"><div id="scoreLabel">PUNTOS</div><div id="score">0</div></div>
+        <div id="centerUI">
+            <div><div id="intensityLabel">INTENSIDAD</div><div id="intensity">1.0x</div><div class="intensity-bar"><div id="intensityFill" class="intensity-fill"></div></div></div>
+            <div><div id="timeLabel">TIEMPO</div><div id="time">00:00</div></div>
+        </div>
+        <div id="healthContainer"><div id="healthLabel">SALUD</div><div id="healthBar"><div id="healthFill"></div><div id="healthText">100%</div></div></div>
     </div>
-
+    
     <div id="touchControls">
-        <button id="leftButton">←</button>
-        <button id="rightButton">→</button>
+        <div class="touch-button" id="leftButton">←</div>
+        <div class="touch-button" id="rightButton">→</div>
     </div>
-
-    <button id="startButton">INICIAR</button>
+    <div id="boostIndicator" class="boost-indicator">¡BOOST DE VELOCIDAD!</div>
+    
+    <!-- Pantallas -->
+    <div id="startScreen" class="screen">
+        <h1 class="title">FIT FRENZY</h1>
+        <p class="subtitle">¡Atrapa los alimentos saludables y evita la comida chatarra!</p>
+        <div id="startRecordContainer" class="record-container">
+            <div class="record-title">RÉCORD ACTUAL</div>
+            <div id="startRecordScore" class="record-score">0</div>
+            <div id="startRecordDetails" style="font-size: 11px;">Intensidad: 1.0x | Tiempo: 00:00</div>
+        </div>
+        <div class="instructions">INSTRUCCIONES</div>
+        <div class="controls"><span class="key">← →</span> mover &nbsp;|&nbsp; <span class="key">P</span> pausar</div>
+        <div class="objects-list" id="objectsListContainer">
+            <div class="object-category good-category"><div class="category-title">🥗 ALIMENTOS SALUDABLES (+puntos)</div><div id="goodItemsList"></div></div>
+            <div class="object-category bad-category"><div class="category-title">🍔 COMIDA CHATARRA (-salud)</div><div id="badItemsList"></div></div>
+        </div>
+        <p class="tip">¡Dificultad dinámica! Cada 100 puntos aumenta velocidad y cantidad.</p>
+        <button id="startButton" class="pulse">COMENZAR JUEGO</button>
+        <button id="resetRecordButton" style="background: #5a2e2e; min-width: 140px;">REINICIAR RÉCORD</button>
+    </div>
+    
+    <div id="pauseScreen" class="screen hidden"><h1>⏸ PAUSA</h1><button id="resumeButton">CONTINUAR</button><button id="restartButton">REINICIAR</button><button id="menuButton">MENÚ</button></div>
+    
+    <div id="gameOverScreen" class="screen hidden">
+        <h1>💀 GAME OVER</h1>
+        <p>Puntuación: <span id="finalScore">0</span></p>
+        <p>Intensidad: <span id="finalIntensity">1.0x</span></p>
+        <p>Tiempo: <span id="finalTime">00:00</span></p>
+        <div id="recordContainer" class="record-container"><div class="record-title">🏆 MEJOR PUNTUACIÓN</div><div id="recordScore" class="record-score">0</div><div id="recordDetails"></div></div>
+        <div id="newRecordMessage" class="record-container new-record" style="display:none;"><div>🎉 ¡NUEVO RÉCORD! 🎉</div></div>
+        <button id="playAgainButton">JUGAR DE NUEVO</button>
+        <button id="menuButton2">MENÚ PRINCIPAL</button>
+    </div>
 </div>
 
-<script src="js/config.js"></script>
-<script src="js/player.js"></script>
-<script src="js/objects.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/game.js"></script>
-<script src="js/main.js"></script>
-
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
