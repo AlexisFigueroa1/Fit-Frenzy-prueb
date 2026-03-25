@@ -9,7 +9,6 @@
     touch-action: manipulation;
 }
 
-/* 🔧 CAMBIO 1: html, body ahora ocupan todo sin position:fixed */
 html, body {
     width: 100%;
     height: 100%;
@@ -27,18 +26,16 @@ body {
     touch-action: manipulation;
 }
 
-/* 🔧 CAMBIO 2: #gameContainer ahora usa relative y viewport dinámico */
 #gameContainer {
     position: relative;
     width: 100%;
     height: 100vh;
-    height: 100dvh; /* 🔥 el fix clave para móviles */
+    height: 100dvh;
     overflow: hidden;
     background: #0f0f25;
     touch-action: none;
 }
 
-/* Canvas: Ocupa el 100% del contenedor sin transformaciones que causen cortes */
 canvas {
     position: absolute;
     top: 0;
@@ -51,7 +48,6 @@ canvas {
     background: #0f0f25;
 }
 
-/* UI optimizada para móvil - posicionamiento fijo dentro del contenedor */
 #ui {
     position: absolute;
     top: env(safe-area-inset-top, 12px);
@@ -102,7 +98,6 @@ canvas {
 #intensity { font-size: 15px; color: #ffd700; text-shadow: 0 0 5px #ffd700; }
 #time { font-size: 13px; }
 
-/* Barra de vida compacta */
 #healthBar {
     width: 70px;
     height: 10px;
@@ -133,7 +128,6 @@ canvas {
     white-space: nowrap;
 }
 
-/* Pantallas con scroll interno para evitar corte */
 .screen {
     position: absolute;
     top: 0;
@@ -157,7 +151,6 @@ canvas {
     display: none;
 }
 
-/* Botones grandes para móvil */
 button {
     background: linear-gradient(145deg, #3a6ea5, #2d5685);
     color: white;
@@ -273,7 +266,6 @@ button:active {
     padding: 0 8px;
 }
 
-/* Controles táctiles - ajustados con safe-area para no quedar fuera */
 #touchControls {
     position: absolute;
     bottom: max(20px, env(safe-area-inset-bottom, 20px));
@@ -403,7 +395,6 @@ button:active {
     #touchControls { bottom: max(10px, env(safe-area-inset-bottom, 10px)); }
 }
 
-/* Corrección extra: asegurar que ningún elemento genere scroll externo */
 ::-webkit-scrollbar {
     width: 4px;
 }
