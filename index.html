@@ -6,7 +6,7 @@
     <title>Fit Frenzy - Arcade Fitness Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        /* ========== ESTILOS (igual que antes, sin cambios relevantes) ========== */
+        /* ========== ESTILOS (sin cambios) ========== */
         * {
             margin: 0;
             padding: 0;
@@ -146,21 +146,7 @@
             box-shadow: 0 2px 0 #1a2e46;
         }
         .boost-indicator {
-            position: absolute;
-            top: 30%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: gold;
-            color: black;
-            padding: 8px 20px;
-            border-radius: 40px;
-            font-weight: bold;
-            z-index: 15;
             display: none;
-            white-space: nowrap;
-            font-size: 0.8rem;
-            box-shadow: 0 0 15px gold;
-            font-family: 'Press Start 2P', monospace;
         }
         .damage-effect {
             position: absolute;
@@ -174,6 +160,18 @@
             transition: opacity 0.1s;
             z-index: 6;
         }
+        .health-up-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(100,200,100,0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 6;
+        }
         .record-container {
             background: rgba(0,0,0,0.7);
             border-radius: 20px;
@@ -181,7 +179,6 @@
             margin: 16px;
             border: 1px solid gold;
         }
-        /* Menú pixelado */
         .pixel-menu {
             position: absolute;
             top: 0;
@@ -300,12 +297,26 @@
             .option-row label { font-size: 10px; }
         }
         #touchControls { display: none; }
+        .loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: black;
+            color: white;
+            padding: 20px;
+            z-index: 200;
+            font-family: 'Press Start 2P', monospace;
+            text-align: center;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
 <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
     <div id="damageEffect" class="damage-effect"></div>
+    <div id="healthUpEffect" class="health-up-effect"></div>
     <div id="ui" style="display: none;">
         <div id="scoreContainer"><div id="scoreLabel">PUNTOS</div><div id="score">0</div></div>
         <div id="centerUI">
@@ -320,7 +331,7 @@
             <div id="healthText">100%</div>
         </div>
     </div>
-    <div id="boostIndicator" class="boost-indicator">⚡ BOOST VELOCIDAD ⚡</div>
+    <div id="boostIndicator" class="boost-indicator"></div>
     <div id="pixelMenu" class="pixel-menu">
         <div class="menu-background"></div>
         <div class="menu-content">
@@ -378,72 +389,277 @@
 </div>
 
 <script>
-    // ======================== SISTEMA DE SONIDOS (sin cambios) ========================
+    // ======================== SISTEMA DE SONIDOS (Web Audio API) ========================
     let audioCtx = null, bgMusicGain = null, effectsGain = null, isAudioAllowed = false, musicInterval = null;
     let musicVolume = 0.5, effectsVolume = 0.5, muted = false;
-    function loadAudioPrefs() { /* ... mismo código ... */ }
-    function saveAudioPrefs() { /* ... */ }
-    function initAudio() { /* ... */ }
-    async function ensureAudioContext() { /* ... */ }
-    function playClickSound() { /* ... */ }
-    function playStartSound() { /* ... */ }
-    function playGoodCollectSound() { /* ... */ }
-    function playDamageSound() { /* ... */ }
-    function playGameOverSound() { /* ... */ }
-    function startBackgroundMusic() { /* ... */ }
-    function stopBackgroundMusic() { /* ... */ }
-    function enableAudioAndPlayClick(e) { /* ... */ }
+    
+    function loadAudioPrefs() {
+        try {
+            const savedMusic = localStorage.getItem('fitFrenzy_musicVol');
+            const savedEffects = localStorage.getItem('fitFrenzy_effectsVol');
+            const savedMuted = localStorage.getItem('fitFrenzy_muted');
+            if (savedMusic !== null) musicVolume = parseFloat(savedMusic);
+            if (savedEffects !== null) effectsVolume = parseFloat(savedEffects);
+            if (savedMuted !== null) muted = savedMuted === 'true';
+            document.getElementById('musicVolume').value = musicVolume * 100;
+            document.getElementById('effectsVolume').value = effectsVolume * 100;
+            document.getElementById('musicVolValue').textContent = Math.round(musicVolume * 100);
+            document.getElementById('effectsVolValue').textContent = Math.round(effectsVolume * 100);
+            if (muted) {
+                document.getElementById('muteAllBtn').textContent = '🔊 ACTIVAR';
+                document.getElementById('muteAllBtn').style.background = '#2d5685';
+            } else {
+                document.getElementById('muteAllBtn').textContent = '🔇 SILENCIAR';
+                document.getElementById('muteAllBtn').style.background = '#aa2e2e';
+            }
+        } catch(e) {}
+    }
+    function saveAudioPrefs() {
+        localStorage.setItem('fitFrenzy_musicVol', musicVolume);
+        localStorage.setItem('fitFrenzy_effectsVol', effectsVolume);
+        localStorage.setItem('fitFrenzy_muted', muted);
+        if (bgMusicGain) bgMusicGain.gain.value = muted ? 0 : musicVolume;
+        if (effectsGain) effectsGain.gain.value = muted ? 0 : effectsVolume;
+    }
+    function initAudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        bgMusicGain = audioCtx.createGain();
+        effectsGain = audioCtx.createGain();
+        bgMusicGain.gain.value = muted ? 0 : musicVolume;
+        effectsGain.gain.value = muted ? 0 : effectsVolume;
+        bgMusicGain.connect(audioCtx.destination);
+        effectsGain.connect(audioCtx.destination);
+    }
+    async function ensureAudioContext() {
+        if (!audioCtx) initAudio();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        isAudioAllowed = true;
+    }
+    function playClickSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.2;
+        osc.connect(gain);
+        gain.connect(effectsGain);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.2);
+        osc.stop(now + 0.2);
+    }
+    function playStartSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'square';
+        osc1.frequency.value = 523.25;
+        gain1.gain.value = 0.15;
+        osc1.connect(gain1);
+        gain1.connect(effectsGain);
+        osc1.start();
+        gain1.gain.exponentialRampToValueAtTime(0.00001, now + 0.3);
+        osc1.stop(now + 0.3);
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.value = 659.25;
+        gain2.gain.value = 0.15;
+        osc2.connect(gain2);
+        gain2.connect(effectsGain);
+        osc2.start(now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.00001, now + 0.45);
+        osc2.stop(now + 0.45);
+    }
+    function playGoodCollectSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 1046.50;
+        gain.gain.value = 0.12;
+        osc.connect(gain);
+        gain.connect(effectsGain);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.15);
+        osc.stop(now + 0.15);
+    }
+    function playDamageSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = 220;
+        gain.gain.value = 0.2;
+        osc.connect(gain);
+        gain.connect(effectsGain);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.25);
+        osc.stop(now + 0.25);
+    }
+    function playHealthUpSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 1318.52; // Mi6
+        gain.gain.value = 0.1;
+        osc.connect(gain);
+        gain.connect(effectsGain);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.2);
+        osc.stop(now + 0.2);
+    }
+    function playGameOverSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        for (let i = 0; i < 3; i++) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.value = 440 - i * 100;
+            gain.gain.value = 0.15;
+            osc.connect(gain);
+            gain.connect(effectsGain);
+            osc.start(now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.00001, now + i * 0.1 + 0.3);
+            osc.stop(now + i * 0.1 + 0.3);
+        }
+    }
+    function startBackgroundMusic() {
+        if (!audioCtx || !isAudioAllowed) return;
+        stopBackgroundMusic();
+        let step = 0;
+        const notes = [261.63, 293.66, 329.63, 261.63, 261.63, 293.66, 329.63, 261.63];
+        musicInterval = setInterval(() => {
+            if (gameState !== 'playing') return;
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = notes[step % notes.length];
+            gain.gain.value = 0.07;
+            osc.connect(gain);
+            gain.connect(bgMusicGain);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.4);
+            osc.stop(now + 0.4);
+            step++;
+        }, 500);
+    }
+    function stopBackgroundMusic() {
+        if (musicInterval) { clearInterval(musicInterval); musicInterval = null; }
+    }
+    function enableAudioAndPlayClick(e) {
+        if (isAudioAllowed) return;
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => { isAudioAllowed = true; playClickSound(); });
+        } else { isAudioAllowed = true; playClickSound(); }
+        document.removeEventListener('click', enableAudioAndPlayClick);
+        document.removeEventListener('touchstart', enableAudioAndPlayClick);
+    }
     document.addEventListener('click', enableAudioAndPlayClick);
     document.addEventListener('touchstart', enableAudioAndPlayClick);
-    // (Implementación completa de sonidos como antes, omitida por brevedad pero funcional)
     
-    // ==================================================================
-    // LISTAS DE ALIMENTOS CON RUTAS DE IMÁGENES PNG
-    // ==================================================================
+    // ======================== LISTAS DE ALIMENTOS CON IMÁGENES MÁS GRANDES ========================
     const GOOD_FOODS = [
-        { id: 'creatina', name: 'Creatina', value: 20, img: 'creatina.png', size: 32 },
-        { id: 'proteina', name: 'Proteína', value: 15, img: 'proteina.png', size: 32 },
-        { id: 'barra', name: 'Barra energética', value: 12, img: 'barra_energetica.png', size: 32 },
-        { id: 'lechuga', name: 'Lechuga', value: 8, img: 'lechuga.png', size: 32 },
-        { id: 'ensalada', name: 'Ensalada', value: 12, img: 'ensalada.png', size: 32 },
-        { id: 'manzana', name: 'Manzana', value: 10, img: 'manzana.png', size: 32 },
-        { id: 'agua', name: 'Agua', value: 5, img: 'agua.png', size: 32 },
-        { id: 'brocoli', name: 'Brócoli', value: 10, img: 'brocoli.png', size: 32 },
-        { id: 'pollo', name: 'Pollo', value: 20, img: 'pollo.png', size: 32 }
+        { id: 'creatina', name: 'Creatina', value: 20, img: 'img/Creatina.png', size: 48 },
+        { id: 'proteina', name: 'Proteína', value: 15, img: 'img/Proteina.png', size: 48 },
+        { id: 'barra', name: 'Barra energética', value: 12, img: 'img/Barra_energetica.png', size: 48 },
+        { id: 'lechuga', name: 'Lechuga', value: 8, img: 'img/Lechuga.png', size: 48 },
+        { id: 'ensalada', name: 'Ensalada', value: 12, img: 'img/Ensalada.png', size: 48 },
+        { id: 'manzana', name: 'Manzana', value: 10, img: 'img/Manzana.png', size: 48 },
+        { id: 'agua', name: 'Agua', value: 5, img: 'img/Agua.png', size: 48 },
+        { id: 'brocoli', name: 'Brócoli', value: 10, img: 'img/Brocoli.png', size: 48 },
+        { id: 'pollo', name: 'Pollo', value: 20, img: 'img/Pollo.png', size: 48 }
     ];
     const BAD_FOODS = [
-        { id: 'soda', name: 'Soda', value: -15, img: 'soda.png', size: 32 },
-        { id: 'tacos', name: 'Tacos', value: -20, img: 'tacos.png', size: 32 },
-        { id: 'pizza', name: 'Pizza', value: -25, img: 'pizza.png', size: 32 },
-        { id: 'hotdog', name: 'Hot dog', value: -18, img: 'hotdog.png', size: 32 },
-        { id: 'dona', name: 'Dona', value: -12, img: 'dona.png', size: 32 },
-        { id: 'helado', name: 'Helado', value: -18, img: 'helado.png', size: 32 },
-        { id: 'papas', name: 'Papas fritas', value: -12, img: 'papas_fritas.png', size: 32 },
-        { id: 'galletas', name: 'Galletas', value: -10, img: 'galletas.png', size: 32 },
-        { id: 'pastel', name: 'Pastel', value: -20, img: 'pastel.png', size: 32 }
+        { id: 'soda', name: 'Soda', value: -15, img: 'img/Soda.png', size: 48 },
+        { id: 'tacos', name: 'Tacos', value: -20, img: 'img/Tacos.png', size: 48 },
+        { id: 'pizza', name: 'Pizza', value: -25, img: 'img/Pizza.png', size: 48 },
+        { id: 'hotdog', name: 'Hot dog', value: -18, img: 'img/Hotdog.png', size: 48 },
+        { id: 'dona', name: 'Dona', value: -12, img: 'img/Dona.png', size: 48 },
+        { id: 'helado', name: 'Helado', value: -18, img: 'img/Helado.png', size: 48 },
+        { id: 'papas', name: 'Papas fritas', value: -12, img: 'img/Papas_fritas.png', size: 48 },
+        { id: 'galletas', name: 'Galletas', value: -10, img: 'img/Galletas.png', size: 48 },
+        { id: 'pastel', name: 'Pastel', value: -20, img: 'img/Pastel.png', size: 48 }
     ];
     const ALL_FOODS = [...GOOD_FOODS, ...BAD_FOODS];
     
-    // Precargar imágenes para evitar parpadeos
+    // Precarga de imágenes
     function preloadImages() {
-        ALL_FOODS.forEach(food => {
-            const img = new Image();
-            img.src = food.img;
+        const promises = ALL_FOODS.map(food => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => {
+                    console.warn(`Imagen no encontrada: ${food.img}`);
+                    resolve(false);
+                };
+                img.src = food.img;
+                food.loadedImg = img;
+            });
         });
+        return Promise.all(promises);
     }
-    preloadImages();
     
-    // ========== TRADUCCIONES (resumidas) ==========
+    // ======================== TRADUCCIONES ========================
     let currentLang = 'es';
     const texts = {
-        es: { menuTitle: 'FIT FRENZY', jugar: 'JUGAR', opciones: 'OPCIONES', salir: 'SALIR', optionsTitle: 'OPCIONES', musicVol: 'Volumen Música', effectsVol: 'Volumen Efectos', muteAll: 'Silenciar todo', muteBtn: '🔇 SILENCIAR', unmuteBtn: '🔊 ACTIVAR', language: 'Idioma / Language', back: 'VOLVER', pauseTitle: '⏸ PAUSA', resume: 'CONTINUAR', restart: 'REINICIAR', menu: 'MENÚ', gameOverTitle: '💀 GAME OVER 💀', finalScore: 'Puntuación:', finalIntensity: 'Intensidad:', finalTime: 'Tiempo:', bestScore: '🏆 MEJOR PUNTUACIÓN 🏆', newRecord: '🎉 NUEVO RÉCORD 🎉', playAgain: 'JUGAR DE NUEVO', mainMenu: 'MENÚ PRINCIPAL', score: 'PUNTOS', intensity: 'INTENSIDAD', time: 'TIEMPO', health: 'SALUD', boost: '⚡ BOOST VELOCIDAD ⚡' },
-        en: { menuTitle: 'FIT FRENZY', jugar: 'PLAY', opciones: 'OPTIONS', salir: 'EXIT', optionsTitle: 'OPTIONS', musicVol: 'Music Volume', effectsVol: 'Effects Volume', muteAll: 'Mute all', muteBtn: '🔇 MUTE', unmuteBtn: '🔊 UNMUTE', language: 'Language', back: 'BACK', pauseTitle: '⏸ PAUSED', resume: 'RESUME', restart: 'RESTART', menu: 'MENU', gameOverTitle: '💀 GAME OVER 💀', finalScore: 'Score:', finalIntensity: 'Intensity:', finalTime: 'Time:', bestScore: '🏆 BEST SCORE 🏆', newRecord: '🎉 NEW RECORD 🎉', playAgain: 'PLAY AGAIN', mainMenu: 'MAIN MENU', score: 'SCORE', intensity: 'INTENSITY', time: 'TIME', health: 'HEALTH', boost: '⚡ SPEED BOOST ⚡' }
+        es: { menuTitle: 'FIT FRENZY', jugar: 'JUGAR', opciones: 'OPCIONES', salir: 'SALIR', optionsTitle: 'OPCIONES', musicVol: 'Volumen Música', effectsVol: 'Volumen Efectos', muteAll: 'Silenciar todo', muteBtn: '🔇 SILENCIAR', unmuteBtn: '🔊 ACTIVAR', language: 'Idioma / Language', back: 'VOLVER', pauseTitle: '⏸ PAUSA', resume: 'CONTINUAR', restart: 'REINICIAR', menu: 'MENÚ', gameOverTitle: '💀 GAME OVER 💀', finalScore: 'Puntuación:', finalIntensity: 'Intensidad:', finalTime: 'Tiempo:', bestScore: '🏆 MEJOR PUNTUACIÓN 🏆', newRecord: '🎉 NUEVO RÉCORD 🎉', playAgain: 'JUGAR DE NUEVO', mainMenu: 'MENÚ PRINCIPAL', score: 'PUNTOS', intensity: 'INTENSIDAD', time: 'TIEMPO', health: 'SALUD', boost: '' },
+        en: { menuTitle: 'FIT FRENZY', jugar: 'PLAY', opciones: 'OPTIONS', salir: 'EXIT', optionsTitle: 'OPTIONS', musicVol: 'Music Volume', effectsVol: 'Effects Volume', muteAll: 'Mute all', muteBtn: '🔇 MUTE', unmuteBtn: '🔊 UNMUTE', language: 'Language', back: 'BACK', pauseTitle: '⏸ PAUSED', resume: 'RESUME', restart: 'RESTART', menu: 'MENU', gameOverTitle: '💀 GAME OVER 💀', finalScore: 'Score:', finalIntensity: 'Intensity:', finalTime: 'Time:', bestScore: '🏆 BEST SCORE 🏆', newRecord: '🎉 NEW RECORD 🎉', playAgain: 'PLAY AGAIN', mainMenu: 'MAIN MENU', score: 'SCORE', intensity: 'INTENSITY', time: 'TIME', health: 'HEALTH', boost: '' }
     };
-    function updateUITexts() { /* ... */ }
-    function setLanguage(lang) { currentLang = lang; localStorage.setItem('fitFrenzy_lang', lang); updateUITexts(); document.getElementById('langEs').classList.toggle('active', lang === 'es'); document.getElementById('langEn').classList.toggle('active', lang === 'en'); }
-    function loadLanguage() { const saved = localStorage.getItem('fitFrenzy_lang'); if (saved === 'en') setLanguage('en'); else setLanguage('es'); }
+    function updateUITexts() {
+        const t = texts[currentLang];
+        document.getElementById('menuTitle').innerText = t.menuTitle;
+        document.getElementById('menuJugar').innerText = t.jugar;
+        document.getElementById('menuOpciones').innerText = t.opciones;
+        document.getElementById('menuSalir').innerText = t.salir;
+        document.getElementById('optionsTitle').innerText = t.optionsTitle;
+        document.getElementById('musicVolLabel').innerHTML = `${t.musicVol}: <span id="musicVolValue">${Math.round(musicVolume*100)}</span>%`;
+        document.getElementById('effectsVolLabel').innerHTML = `${t.effectsVol}: <span id="effectsVolValue">${Math.round(effectsVolume*100)}</span>%`;
+        document.getElementById('muteAllLabel').innerText = t.muteAll;
+        document.getElementById('muteAllBtn').innerText = muted ? t.unmuteBtn : t.muteBtn;
+        document.getElementById('languageLabel').innerText = t.language;
+        document.getElementById('closeOptionsBtn').innerText = t.back;
+        document.getElementById('pauseTitle').innerText = t.pauseTitle;
+        document.getElementById('resumeButton').innerText = t.resume;
+        document.getElementById('restartButton').innerText = t.restart;
+        document.getElementById('menuButton').innerText = t.menu;
+        document.getElementById('gameOverTitle').innerText = t.gameOverTitle;
+        document.getElementById('finalScoreLabel').innerText = t.finalScore;
+        document.getElementById('finalIntensityLabel').innerText = t.finalIntensity;
+        document.getElementById('finalTimeLabel').innerText = t.finalTime;
+        document.getElementById('bestScoreLabel').innerText = t.bestScore;
+        document.getElementById('playAgainButton').innerText = t.playAgain;
+        document.getElementById('menuButton2').innerText = t.mainMenu;
+        document.getElementById('scoreLabel').innerText = t.score;
+        document.getElementById('intensityLabel').innerText = t.intensity;
+        document.getElementById('timeLabel').innerText = t.time;
+        document.getElementById('healthLabel').innerText = t.health;
+    }
+    function setLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('fitFrenzy_lang', lang);
+        updateUITexts();
+        document.getElementById('langEs').classList.toggle('active', lang === 'es');
+        document.getElementById('langEn').classList.toggle('active', lang === 'en');
+    }
+    function loadLanguage() {
+        const saved = localStorage.getItem('fitFrenzy_lang');
+        if (saved === 'en') setLanguage('en');
+        else setLanguage('es');
+    }
     
-    // ========== CONFIGURACIÓN RESPONSIVA ==========
+    // ======================== CONFIGURACIÓN RESPONSIVA ========================
     let canvas, ctx;
     let gameWidth = 800, gameHeight = 1000;
     function updateCanvasSize() {
@@ -454,32 +670,72 @@
         gameWidth = Math.floor(newWidth); gameHeight = Math.floor(newHeight);
         canvas.width = gameWidth; canvas.height = gameHeight;
         canvas.style.width = `${gameWidth}px`; canvas.style.height = `${gameHeight}px`;
-        if(player) { player.x = Math.min(Math.max(player.x, 0), gameWidth - player.width); player.y = gameHeight - 90; }
+        if(player) {
+            player.x = Math.min(Math.max(player.x, 0), gameWidth - player.width);
+            player.y = gameHeight - 90;
+        }
     }
     
-    // ========== VARIABLES DEL JUEGO ==========
+    // ======================== VARIABLES DEL JUEGO ========================
     let gameState = 'menu';
     let player = {
         x: 0, y: 0, width: 70, height: 35, speed: 7, score: 0, health: 100, maxHealth: 100,
-        speedBoost: 0, boostTimer: 0,
-        update() { if(this.boostTimer > 0) { this.boostTimer--; if(this.boostTimer===0) this.speedBoost=0; } },
-        move(dir) { let step = this.speed + this.speedBoost; if(dir === 'left') this.x -= step; if(dir === 'right') this.x += step; this.x = Math.max(0, Math.min(gameWidth - this.width, this.x)); },
+        update() { },
+        move(dir) {
+            let step = this.speed;
+            if(dir === 'left') this.x -= step;
+            if(dir === 'right') this.x += step;
+            this.x = Math.max(0, Math.min(gameWidth - this.width, this.x));
+        },
         getBounds() { return { x: this.x-10, y: this.y-10, width: this.width+20, height: this.height+20 }; },
-        applyBoost() { this.speedBoost = 6; this.boostTimer = 150; },
-        takeDamage(amt) { this.health = Math.max(0, this.health + amt); showDamage(); },
-        reset() { this.x = gameWidth/2 - this.width/2; this.y = gameHeight - 90; this.score = 0; this.health = this.maxHealth; this.speedBoost = 0; this.boostTimer = 0; }
+        takeDamage(amt) { 
+            this.health = Math.max(0, this.health - Math.abs(amt)); 
+            showDamage(); 
+        },
+        heal(amount) {
+            this.health = Math.min(this.maxHealth, this.health + amount);
+            showHealthUpEffect();
+        },
+        reset() {
+            this.x = gameWidth/2 - this.width/2;
+            this.y = gameHeight - 90;
+            this.score = 0;
+            this.health = this.maxHealth;
+        }
     };
     let fallingObjects = [], spawnCounter = 0, spawnRate = 70, gameTimer = 0, gameIntensity = 1.0, objectsPerSpawn = 1;
     let highScore = { score: 0, intensity: 1.0, time: 0 };
     let keys = { ArrowLeft: false, ArrowRight: false };
+    let nextHealthThreshold = 100; // cada 100 puntos, sube 5 de vida
+    
     const scoreEl = document.getElementById('score'), intensityEl = document.getElementById('intensity'), timeEl = document.getElementById('time');
     const healthFill = document.getElementById('healthFill'), healthText = document.getElementById('healthText');
-    const boostIndicator = document.getElementById('boostIndicator'), damageOverlay = document.getElementById('damageEffect'), uiContainer = document.getElementById('ui');
+    const damageOverlay = document.getElementById('damageEffect'), healthUpOverlay = document.getElementById('healthUpEffect'), uiContainer = document.getElementById('ui');
     function showDamage() { damageOverlay.style.opacity = '0.5'; setTimeout(()=> damageOverlay.style.opacity='0', 150); }
-    function updateUI() { if(gameState !== 'playing') return; scoreEl.textContent = player.score; let percent = (player.health/player.maxHealth)*100; healthFill.style.width = `${percent}%`; healthText.textContent = `${Math.floor(percent)}%`; let mins = Math.floor(gameTimer/3600), secs = Math.floor((gameTimer%3600)/60); timeEl.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`; intensityEl.textContent = `${gameIntensity.toFixed(1)}x`; }
-    function updateIntensityByScore() { let target = 1.0 + Math.floor(player.score/100)*0.1; if(target > gameIntensity) gameIntensity = Math.min(gameIntensity + 0.002, target); spawnRate = Math.max(38, 70/gameIntensity); objectsPerSpawn = Math.min(1 + Math.floor(gameIntensity), 4); updateUI(); }
+    function showHealthUpEffect() { 
+        healthUpOverlay.style.opacity = '0.5'; 
+        setTimeout(()=> healthUpOverlay.style.opacity='0', 300);
+        playHealthUpSound();
+    }
+    function updateUI() {
+        if(gameState !== 'playing') return;
+        scoreEl.textContent = player.score;
+        let percent = (player.health/player.maxHealth)*100;
+        healthFill.style.width = `${percent}%`;
+        healthText.textContent = `${Math.floor(percent)}%`;
+        let mins = Math.floor(gameTimer/3600), secs = Math.floor((gameTimer%3600)/60);
+        timeEl.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+        intensityEl.textContent = `${gameIntensity.toFixed(1)}x`;
+    }
+    function updateIntensityByScore() {
+        let target = 1.0 + Math.floor(player.score/100)*0.1;
+        if(target > gameIntensity) gameIntensity = Math.min(gameIntensity + 0.002, target);
+        spawnRate = Math.max(38, 70 / gameIntensity);
+        objectsPerSpawn = Math.min(1 + Math.floor(gameIntensity), 3);
+        updateUI();
+    }
     
-    // ========== CLASE FallingItem CON IMÁGENES ==========
+    // ======================== CLASE FallingItem CON TAMAÑO AUMENTADO ========================
     class FallingItem {
         constructor(isGood) {
             this.isGood = isGood;
@@ -487,31 +743,29 @@
             const data = list[Math.floor(Math.random() * list.length)];
             this.name = data.name;
             this.value = data.value;
-            this.size = data.size + Math.random() * 8; // tamaño aleatorio entre 32 y 40 aprox
-            // Cargar imagen
-            this.image = new Image();
-            this.image.src = data.img;
+            this.size = data.size + Math.random() * 10; // entre 48 y 58 píxeles
+            this.image = data.loadedImg || new Image();
+            if (!data.loadedImg) this.image.src = data.img;
             this.x = Math.random() * (gameWidth - this.size - 20) + 10;
             this.y = -this.size;
             this.speedY = (Math.random() * 2.5 + 2) * gameIntensity;
             this.rot = 0;
             this.rotSpeed = (Math.random() - 0.5) * 0.1;
         }
-        update() {
-            this.y += this.speedY;
-            this.rot += this.rotSpeed;
-        }
+        update() { this.y += this.speedY; this.rot += this.rotSpeed; }
         draw(ctx) {
             ctx.save();
             ctx.translate(this.x + this.size/2, this.y + this.size/2);
             ctx.rotate(this.rot);
-            // Dibujar la imagen centrada
-            if (this.image.complete) {
+            if (this.image.complete && this.image.naturalWidth > 0) {
                 ctx.drawImage(this.image, -this.size/2, -this.size/2, this.size, this.size);
             } else {
-                // Fallback mientras carga: un rectángulo del color del alimento
+                // Fallback visual
                 ctx.fillStyle = this.isGood ? '#64c864' : '#dc4646';
                 ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.fillStyle = 'white';
+                ctx.font = `${this.size/2}px monospace`;
+                ctx.fillText(this.isGood ? '✓' : '✗', -this.size/4, this.size/4);
             }
             ctx.restore();
         }
@@ -535,26 +789,46 @@
         spawnCounter++;
         if(spawnCounter >= spawnRate) { spawnObjects(); spawnCounter = 0; }
         updateIntensityByScore();
+        
         for(let i=0; i<fallingObjects.length; i++) {
             const obj = fallingObjects[i];
             obj.update();
             const bounds = obj.getBounds();
             const playerBounds = player.getBounds();
+            
+            // Colisión con el jugador
             if(bounds.x < playerBounds.x+playerBounds.width && bounds.x+bounds.width > playerBounds.x &&
                bounds.y < playerBounds.y+playerBounds.height && bounds.y+bounds.height > playerBounds.y) {
                 if(obj.isGood) {
                     player.score += obj.value;
                     playGoodCollectSound();
-                    if(Math.random() < 0.2) { player.applyBoost(); boostIndicator.style.display = 'block'; setTimeout(()=> boostIndicator.style.display='none', 1000); }
+                    // Cada 100 puntos, aumentar vida en 5
+                    while (player.score >= nextHealthThreshold) {
+                        player.heal(5);
+                        nextHealthThreshold += 100;
+                    }
                 } else {
-                    player.takeDamage(obj.value);
+                    player.takeDamage(obj.value); // obj.value es negativo, pero takeDamage usa Math.abs
                     playDamageSound();
                     if(player.health <= 0) gameOver();
                 }
-                fallingObjects.splice(i,1); i--;
+                fallingObjects.splice(i,1);
+                i--;
                 continue;
             }
-            if(obj.isOffscreen()) { fallingObjects.splice(i,1); i--; }
+            
+            // Objeto fuera de pantalla
+            if(obj.isOffscreen()) {
+                // Si es un objeto bueno y se pierde, restar 2 de salud
+                if(obj.isGood) {
+                    player.takeDamage(2);
+                    playDamageSound();
+                    if(player.health <= 0) gameOver();
+                }
+                fallingObjects.splice(i,1);
+                i--;
+                continue;
+            }
         }
         gameTimer++;
         updateUI();
@@ -581,12 +855,49 @@
         canvas.style.display = 'none';
     }
     
-    function resetGame() { player.reset(); fallingObjects = []; spawnCounter = 0; gameTimer = 0; gameIntensity = 1.0; objectsPerSpawn = 1; spawnRate = 70; updateUI(); player.health = 100; player.score = 0; }
-    async function startGame() { await ensureAudioContext(); resetGame(); gameState = 'playing'; playStartSound(); startBackgroundMusic(); document.getElementById('pixelMenu').classList.add('hidden'); canvas.style.display = 'block'; uiContainer.style.display = 'flex'; document.getElementById('optionsScreen').classList.add('hidden'); document.getElementById('pauseScreen').classList.add('hidden'); document.getElementById('gameOverScreen').classList.add('hidden'); updateCanvasSize(); }
+    function resetGame() { 
+        player.reset(); 
+        fallingObjects = []; 
+        spawnCounter = 0; 
+        gameTimer = 0; 
+        gameIntensity = 1.0; 
+        objectsPerSpawn = 1; 
+        spawnRate = 70; 
+        nextHealthThreshold = 100;
+        updateUI(); 
+        player.health = 100; 
+        player.score = 0; 
+    }
+    async function startGame() {
+        await ensureAudioContext();
+        resetGame();
+        gameState = 'playing';
+        playStartSound();
+        startBackgroundMusic();
+        document.getElementById('pixelMenu').classList.add('hidden');
+        canvas.style.display = 'block';
+        uiContainer.style.display = 'flex';
+        document.getElementById('optionsScreen').classList.add('hidden');
+        document.getElementById('pauseScreen').classList.add('hidden');
+        document.getElementById('gameOverScreen').classList.add('hidden');
+        updateCanvasSize();
+        draw();
+    }
     function pauseGame() { if(gameState==='playing') { gameState='paused'; stopBackgroundMusic(); document.getElementById('pauseScreen').classList.remove('hidden'); } }
     function resumeGame() { if(gameState==='paused') { gameState='playing'; startBackgroundMusic(); document.getElementById('pauseScreen').classList.add('hidden'); } }
-    function returnToMenu() { gameState = 'menu'; stopBackgroundMusic(); canvas.style.display = 'none'; uiContainer.style.display = 'none'; document.getElementById('pixelMenu').classList.remove('hidden'); document.getElementById('optionsScreen').classList.add('hidden'); document.getElementById('pauseScreen').classList.add('hidden'); document.getElementById('gameOverScreen').classList.add('hidden'); resetGame(); }
+    function returnToMenu() {
+        gameState = 'menu';
+        stopBackgroundMusic();
+        canvas.style.display = 'none';
+        uiContainer.style.display = 'none';
+        document.getElementById('pixelMenu').classList.remove('hidden');
+        document.getElementById('optionsScreen').classList.add('hidden');
+        document.getElementById('pauseScreen').classList.add('hidden');
+        document.getElementById('gameOverScreen').classList.add('hidden');
+        resetGame();
+    }
     
+    // ======================== DIBUJO ========================
     function drawBackground() {
         const grad = ctx.createLinearGradient(0,0,0,gameHeight);
         grad.addColorStop(0,'#0a0a20'); grad.addColorStop(1,'#151530');
@@ -597,8 +908,6 @@
     }
     function drawPlayer() {
         ctx.fillStyle = '#4682b4';
-        ctx.shadowBlur = player.speedBoost>0 ? 12 : 0;
-        ctx.shadowColor = 'gold';
         ctx.fillRect(player.x, player.y, player.width, player.height);
         ctx.beginPath(); ctx.arc(player.x+player.width/2, player.y-12, 16, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#f0f0f0';
@@ -607,15 +916,26 @@
         ctx.fillStyle = '#111';
         ctx.beginPath(); ctx.arc(player.x+player.width/2-5, player.y-16, 1.5, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(player.x+player.width/2+5, player.y-16, 1.5, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0;
     }
     function draw() { if(gameState === 'playing') { drawBackground(); for(let obj of fallingObjects) obj.draw(ctx); drawPlayer(); } }
     
     function loadHighScore() { const saved = localStorage.getItem('fitFrenzyHigh'); if(saved) { try { highScore = JSON.parse(saved); } catch(e) {} } }
     
+    // ======================== CONTROL TÁCTIL ========================
     function initTouchControls() {
         const canvasElem = canvas;
-        function handleTouch(e) { if(gameState !== 'playing') return; e.preventDefault(); const rect = canvasElem.getBoundingClientRect(); const scaleX = gameWidth / rect.width; if(e.touches.length > 0) { let canvasX = (e.touches[0].clientX - rect.left) * scaleX; canvasX = Math.min(Math.max(canvasX, 0), gameWidth); if(canvasX < gameWidth/2) { keys.ArrowLeft = true; keys.ArrowRight = false; } else { keys.ArrowLeft = false; keys.ArrowRight = true; } } }
+        function handleTouch(e) {
+            if(gameState !== 'playing') return;
+            e.preventDefault();
+            const rect = canvasElem.getBoundingClientRect();
+            const scaleX = gameWidth / rect.width;
+            if(e.touches.length > 0) {
+                let canvasX = (e.touches[0].clientX - rect.left) * scaleX;
+                canvasX = Math.min(Math.max(canvasX, 0), gameWidth);
+                if(canvasX < gameWidth/2) { keys.ArrowLeft = true; keys.ArrowRight = false; }
+                else { keys.ArrowLeft = false; keys.ArrowRight = true; }
+            }
+        }
         function handleTouchEnd(e) { if(gameState !== 'playing') return; e.preventDefault(); keys.ArrowLeft = false; keys.ArrowRight = false; }
         canvasElem.addEventListener('touchstart', handleTouch, { passive: false });
         canvasElem.addEventListener('touchmove', handleTouch, { passive: false });
@@ -623,12 +943,12 @@
         canvasElem.addEventListener('touchcancel', handleTouchEnd);
     }
     
-    // ========== LLUVIA DE COMIDA EN EL MENÚ (también usa imágenes) ==========
+    // ======================== LLUVIA DE COMIDA EN EL MENÚ (también más grande) ========================
     let rainInterval = null;
     function createFoodElement(food) {
         const div = document.createElement('div');
         div.className = 'food-rain';
-        const size = 40 + Math.random() * 20;
+        const size = 50 + Math.random() * 20; // entre 50 y 70 píxeles
         div.style.width = `${size}px`;
         div.style.height = `${size}px`;
         div.style.left = Math.random() * 100 + '%';
@@ -647,7 +967,7 @@
         const menuDiv = document.getElementById('pixelMenu');
         const existingRain = menuDiv.querySelectorAll('.food-rain');
         existingRain.forEach(el => el.remove());
-        for(let i = 0; i < 50; i++) {
+        for(let i = 0; i < 30; i++) {
             const randomFood = ALL_FOODS[Math.floor(Math.random() * ALL_FOODS.length)];
             const foodElement = createFoodElement(randomFood);
             menuDiv.appendChild(foodElement);
@@ -659,13 +979,20 @@
                 const newFood = createFoodElement(randomFood);
                 document.getElementById('pixelMenu').appendChild(newFood);
                 const allItems = document.querySelectorAll('.food-rain');
-                if(allItems.length > 100) allItems[0].remove();
+                if(allItems.length > 80) allItems[0].remove();
             }
-        }, 600);
+        }, 800);
     }
     
-    // ========== INICIALIZACIÓN ==========
-    function init() {
+    // ======================== INICIALIZACIÓN ========================
+    async function init() {
+        const loader = document.createElement('div');
+        loader.className = 'loader';
+        loader.innerText = 'CARGANDO...';
+        document.body.appendChild(loader);
+        await preloadImages();
+        loader.remove();
+        
         canvas = document.getElementById('gameCanvas');
         ctx = canvas.getContext('2d');
         updateCanvasSize();
@@ -705,6 +1032,7 @@
         function animate() { updateGame(); draw(); requestAnimationFrame(animate); }
         animate();
     }
+    
     init();
 </script>
 </body>
